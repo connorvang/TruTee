@@ -1,0 +1,1 @@
+export const COURSE_ID = '5c78eae7-d8df-4877-a60c-84e1b4d6ffb4' 

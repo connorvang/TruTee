@@ -13,9 +13,16 @@ import { Calendar } from "@/components/ui/calendar"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { cn } from "@/lib/utils"
 import { getTeeTimes } from './teeTimesList.server'
+import { useCourse } from '@/contexts/CourseContext'
 
+// Helper function to get week number - move this OUTSIDE and BEFORE the component
+const getWeekNumber = (date: Date) => {
+  const firstDayOfYear = new Date(date.getFullYear(), 0, 1);
+  const pastDaysOfYear = (date.getTime() - firstDayOfYear.getTime()) / 86400000;
+  return Math.ceil((pastDaysOfYear + firstDayOfYear.getDay() + 1) / 7);
+};
 
-export default function TimePriceList() {
+export default function TeeTimesList() {
   const [currentWeek, setCurrentWeek] = useState(47);
   const [currentYear, setCurrentYear] = useState(2024);
   const [weather, setWeather] = useState({
@@ -27,7 +34,76 @@ export default function TimePriceList() {
   });
   const [date, setDate] = useState<Date | undefined>(new Date());
   const [selectedDay, setSelectedDay] = useState<string>("");
+  const { activeCourse, isLoading } = useCourse()
 
+  // Update week and selected day when date changes
+  useEffect(() => {
+    if (date) {
+      setCurrentWeek(getWeekNumber(date));
+      setCurrentYear(date.getFullYear());
+      setSelectedDay(format(date, "EEE"));
+    }
+  }, [date]); // Add date as dependency
+
+  useEffect(() => {
+    const controller = new AbortController();
+    
+    async function fetchWeather() {
+      try {
+        const lat = 37.1305;
+        const lon = -113.5083;
+        
+        const [currentResponse, forecastResponse] = await Promise.all([
+          fetch(
+            `https://api.tomorrow.io/v4/weather/realtime?location=${lat},${lon}&apikey=${process.env.NEXT_PUBLIC_WEATHER_API_KEY}&units=imperial`,
+            { signal: controller.signal }
+          ),
+          fetch(
+            `https://api.tomorrow.io/v4/weather/forecast?location=${lat},${lon}&apikey=${process.env.NEXT_PUBLIC_WEATHER_API_KEY}&units=imperial`,
+            { signal: controller.signal }
+          )
+        ]);
+
+        const currentData = await currentResponse.json();
+        const forecastData = await forecastResponse.json();
+
+        setWeather({
+          current: Math.round(currentData.data.values.temperature),
+          high: Math.round(forecastData.timelines.daily[0].values.temperatureMax),
+          low: Math.round(forecastData.timelines.daily[0].values.temperatureMin),
+          weatherCode: currentData.data.values.weatherCode,
+          isDay: currentData.data.values.isDay,
+        });
+      } catch (error: unknown) {
+        if (error instanceof Error && error.name === 'AbortError') return;
+        console.error('Error fetching weather:', error);
+      }
+    }
+
+    fetchWeather();
+    const interval = setInterval(fetchWeather, 1800000); // 30 minutes
+
+    return () => {
+      clearInterval(interval);
+      controller.abort();
+    };
+  }, []); // Empty dependency array
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center py-8">
+        <div className="animate-pulse">Loading course information...</div>
+      </div>
+    )
+  }
+
+  if (!activeCourse) {
+    return (
+      <div className="flex items-center justify-center py-8 text-gray-500">
+        Unable to load course information. Please try again later.
+      </div>
+    )
+  }
 
   // Helper function to get the appropriate weather icon
   const getWeatherIcon = (code: number, isDay: boolean = true) => {
@@ -70,56 +146,6 @@ export default function TimePriceList() {
     }
   };
 
-  useEffect(() => {
-    const controller = new AbortController();
-    
-    const fetchWeather = async () => {
-      try {
-        const lat = 37.1305;
-        const lon = -113.5083;
-        
-        const response = await fetch(
-          `https://api.tomorrow.io/v4/weather/realtime?location=${lat},${lon}&apikey=${process.env.NEXT_PUBLIC_WEATHER_API_KEY}&units=imperial`,
-          { signal: controller.signal }
-        );
-        const data = await response.json();
-        
-        const forecastResponse = await fetch(
-          `https://api.tomorrow.io/v4/weather/forecast?location=${lat},${lon}&apikey=${process.env.NEXT_PUBLIC_WEATHER_API_KEY}&units=imperial`
-        );
-        const forecastData = await forecastResponse.json();
-
-        setWeather({
-          current: Math.round(data.data.values.temperature),
-          high: Math.round(forecastData.timelines.daily[0].values.temperatureMax),
-          low: Math.round(forecastData.timelines.daily[0].values.temperatureMin),
-          weatherCode: data.data.values.weatherCode,
-          isDay: data.data.values.isDay,
-        });
-      } catch (error: unknown) {
-        if (error instanceof Error && error.name === 'AbortError') return;
-        console.error('Error fetching weather:', error);
-      }
-    };
-
-    fetchWeather();
-    const interval = setInterval(fetchWeather, 1800000);
-    return () => {
-      clearInterval(interval);
-      controller.abort();
-    };
-  }, []);
-
-
-
-  // Helper function to get week number
-  const getWeekNumber = (date: Date) => {
-    const firstDayOfYear = new Date(date.getFullYear(), 0, 1);
-    const pastDaysOfYear = (date.getTime() - firstDayOfYear.getTime()) / 86400000;
-    return Math.ceil((pastDaysOfYear + firstDayOfYear.getDay() + 1) / 7);
-  };
-
-
   const getWeekDates = (week: number, year: number) => {
     const firstDayOfYear = new Date(year, 0, 1);
     const firstDayOfWeek = new Date(year, 0, 1 + (week - 1) * 7 - firstDayOfYear.getDay());
@@ -156,47 +182,82 @@ export default function TimePriceList() {
 
   // Remove the tee times fetching useEffect and replace with server data
   const TeeTimes = async ({ date }: { date: Date }) => {
-    const teeTimes = await getTeeTimes(date.toISOString())
+    const { activeCourse } = useCourse()
     
-    return (
-      <>
-        {teeTimes.map((item) => (
-          <div key={item.id} className="flex items-center border-b px-6 py-2 border-gray-100">
-            <div className="w-24 pr-4 text-sm font-small text-right">
-              {format(new Date(item.start_time), 'h:mm a')}
+    // Prevent fetching if no active course
+    if (!activeCourse?.id) {
+      return (
+        <div className="flex items-center justify-center py-8 text-gray-500">
+          Please select a course to view tee times.
+        </div>
+      )
+    }
+
+    const MAX_RETRIES = 3;
+    const RETRY_DELAY = 1000;
+
+    const fetchTeeTimes = async (retryCount = 0) => {
+      try {
+        const teeTimes = await getTeeTimes(date.toISOString(), activeCourse.id)
+        if (!teeTimes) throw new Error('No tee times returned')
+        return teeTimes
+      } catch (error) {
+        if (retryCount >= MAX_RETRIES) throw error
+        await new Promise(resolve => setTimeout(resolve, RETRY_DELAY))
+        return fetchTeeTimes(retryCount + 1)
+      }
+    }
+
+    try {
+      const teeTimes = await fetchTeeTimes()
+      
+      return (
+        <>
+          {teeTimes.map((item) => (
+            <div key={item.id} className="flex items-center border-b px-6 py-2 border-gray-100">
+              <div className="w-24 pr-4 text-sm font-small text-right">
+                {format(new Date(item.start_time), 'h:mm a')}
+              </div>
+              <div className="w-20 pr-4 text-sm font-small text-gray-600 text-right">
+                ${item.price}
+              </div>
+              <div className="flex flex-1 space-x-2">
+                {renderSpots(item.available_spots, item.booked_spots).map((spot, idx) => (
+                  <div
+                    key={idx}
+                    className={`flex items-center ${
+                      spot.isBooked ? "justify-start" : "justify-center"
+                    } flex-1 p-2 h-8 rounded-md ${
+                      spot.isBooked
+                        ? "bg-gray-900 text-white"
+                        : "bg-gray-100 border border-gray-200"
+                    }`}
+                  >
+                    {spot.isBooked ? (
+                      <>
+                        <CarFront className="mr-2" size={16} />
+                        <CircleDollarSign className="mr-2" size={16} />
+                        <span className="text-xs font-semibold mr-4 w-2 text-center">18</span>
+                        <span className="text-sm font-medium">Player name</span>
+                      </>
+                    ) : (
+                      <PlusCircle className="text-gray-500" size={16} />
+                    )}
+                  </div>
+                ))}
+              </div>
             </div>
-            <div className="w-20 pr-4 text-sm font-small text-gray-600 text-right">
-              ${item.price}
-            </div>
-            <div className="flex flex-1 space-x-2">
-              {renderSpots(item.available_spots, item.booked_spots).map((spot, idx) => (
-                <div
-                  key={idx}
-                  className={`flex items-center ${
-                    spot.isBooked ? "justify-start" : "justify-center"
-                  } flex-1 p-2 h-8 rounded-md ${
-                    spot.isBooked
-                      ? "bg-gray-600 text-white"
-                      : "bg-gray-100 border border-gray-200"
-                  }`}
-                >
-                  {spot.isBooked ? (
-                    <>
-                      <CarFront className="mr-2" size={16} />
-                      <CircleDollarSign className="mr-2" size={16} />
-                      <span className="text-xs font-semibold mr-4 w-2 text-center">18</span>
-                      <span className="text-sm font-medium">Player name</span>
-                    </>
-                  ) : (
-                    <PlusCircle className="text-gray-500" size={16} />
-                  )}
-                </div>
-              ))}
-            </div>
-          </div>
-        ))}
-      </>
-    )
+          ))}
+        </>
+      )
+    } catch (error) {
+      console.error('Error fetching tee times:', error)
+      return (
+        <div className="flex items-center justify-center py-8 text-gray-500">
+          Unable to load tee times. Please try again later.
+        </div>
+      )
+    }
   }
 
   // Helper function to render spots
@@ -210,68 +271,19 @@ export default function TimePriceList() {
 
   // Helper function to get a date from a day in the current week
   const getDateFromDay = (dayShort: string) => {
-    if (!date) return;
-    const currentDate = new Date(date);
-    const currentDayShort = format(currentDate, "EEE");
+    // Calculate the first day of the year
+    const firstDayOfYear = new Date(currentYear, 0, 1);
+    // Calculate the first day of the current week
+    const firstDayOfWeek = new Date(currentYear, 0, 1 + (currentWeek - 1) * 7 - firstDayOfYear.getDay());
+    
     const daysMap: { [key: string]: number } = {
       "Sun": 0, "Mon": 1, "Tue": 2, "Wed": 3, 
       "Thu": 4, "Fri": 5, "Sat": 6
     };
     
-    const diff = daysMap[dayShort] - daysMap[currentDayShort];
-    const newDate = new Date(currentDate);
-    newDate.setDate(currentDate.getDate() + diff);
+    const newDate = new Date(firstDayOfWeek);
+    newDate.setDate(firstDayOfWeek.getDate() + daysMap[dayShort]);
     return newDate;
-  };
-
-  // Update week and selected day when date changes
-  useEffect(() => {
-    if (date) {
-      setCurrentWeek(getWeekNumber(date));
-      setCurrentYear(date.getFullYear());
-      setSelectedDay(format(date, "EEE"));
-    }
-  }, [date]);
-
-  // Create a Now indicator component
-  const NowIndicator = ({ teeTimes }: { teeTimes: unknown[] }) => {
-    const [currentTime, setCurrentTime] = useState(new Date());
-
-    useEffect(() => {
-      const interval = setInterval(() => {
-        setCurrentTime(new Date());
-      }, 60000);
-      return () => clearInterval(interval);
-    }, []);
-
-    const getPosition = () => {
-      if (!teeTimes?.length) return '0px';
-      const now = currentTime;
-      const firstTeeTime = new Date((teeTimes[0] as {start_time: string}).start_time);
-      
-      // Calculate minutes since first tee time
-      const totalMinutes = 
-        (now.getHours() - firstTeeTime.getHours()) * 60 + 
-        (now.getMinutes() - firstTeeTime.getMinutes());
-      
-      const intervals = Math.floor(totalMinutes / 15);
-      const partialInterval = (totalMinutes % 15) / 15;
-      
-      // Calculate exact position: each interval is 49px
-      const position = (intervals + partialInterval) * 49;
-      return `${position}px`;
-    };
-
-    return (
-      <div className="absolute left-0 right-0 z-50" style={{ top: getPosition() }}>
-        <div className="flex items-center">
-          <div className="bg-red-500 text-white text-xs font-medium px-2 py-0.5 rounded-r">
-            Now
-          </div>
-          <div className="flex-1 border-t border-red-500"></div>
-        </div>
-      </div>
-    );
   };
 
   return (
@@ -387,7 +399,7 @@ export default function TimePriceList() {
       {weekdays.map((day) => (
         <TabsContent key={day.dayShort} value={day.dayShort}>
           <div className="relative">
-            {date && isSameDay(new Date(), date) && <NowIndicator teeTimes={[]} />}
+            {date && isSameDay(new Date(), date)}
             
             <Suspense fallback={
               <div className="flex items-center justify-center py-8">

@@ -55,9 +55,8 @@ const data = {
   navMain: [
     {
       title: "Teesheets",
-      url: "#",
+      url: "/",
       icon: LandPlot,
-      isActive: true,
     },
     {
       title: "Events",
@@ -93,7 +92,7 @@ const data = {
   projects: [
     {
       name: "Settings",
-      url: "#",
+      url: "/settings",
       icon: SettingsIcon,
     },
     {
@@ -108,7 +107,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   return (
     <Sidebar collapsible="icon" {...props}>
       <SidebarHeader>
-        <TeamSwitcher teams={data.teams} />
+        <TeamSwitcher />
       </SidebarHeader>
       <SidebarContent>
         <NavMain items={data.navMain} />

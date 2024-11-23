@@ -11,7 +11,8 @@ import {
   SidebarProvider,
 } from "@/components/ui/sidebar"
 
-export default function TeesheetsPage() {
+// Mark as async to support Server Components
+export default async function TeesheetsPage() {
   return (
     <SidebarProvider>
       <AppSidebar />

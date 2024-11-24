@@ -123,23 +123,14 @@ export default function TeeTimeSettings() {
         .limit(1);
 
       if (!existingTeeTimes?.length) {
+        console.log("Generating tee times...");
         await generateTeeTimes();
+      } else {
+        console.log("Tee times already exist, no need to generate.");
       }
     };
 
     checkAndGenerateTeeTimes();
-
-    const now = new Date();
-    const tomorrow = new Date(now);
-    tomorrow.setDate(tomorrow.getDate() + 1);
-    tomorrow.setHours(0, 0, 0, 0);
-    const msUntilMidnight = tomorrow.getTime() - now.getTime();
-
-    const timer = setTimeout(() => {
-      checkAndGenerateTeeTimes();
-    }, msUntilMidnight);
-
-    return () => clearTimeout(timer);
   }, [activeCourse?.id, settings.booking_days_in_advance, supabase, generateTeeTimes]);
 
   const handleSave = async () => {

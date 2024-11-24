@@ -3,8 +3,8 @@
 import { ChevronLeft, ChevronRight, PlusCircle, Users, ChevronDown, CircleDollarSign, CarFront, Circle } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { format } from "date-fns";
-import { BookingModal } from './bookingModal'
-import { DeleteBookingDialog } from './DeleteBookingDialog'
+import { BookingModal } from '../Booking/bookingModal'
+import { DeleteBookingDialog } from '../Booking/DeleteBookingDialog'
 
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Button } from "@/components/ui/button"
@@ -16,7 +16,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { cn } from "@/lib/utils"
 import { getTeeTimes } from './teeTimesList.server'
 import { useCourse } from '@/contexts/CourseContext'
-import WeatherInfo from './getWeather';
+import WeatherInfo from '../getWeather';
 
 
 // Helper function to get week number

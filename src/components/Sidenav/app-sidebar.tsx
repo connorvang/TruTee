@@ -3,10 +3,10 @@
 import * as React from "react"
 import { usePathname } from "next/navigation"
 
-import { NavMain } from "@/components/nav-main"
-import { NavProjects } from "@/components/nav-projects"
-import { NavUser } from "@/components/nav-user"
-import { TeamSwitcher } from "@/components/team-switcher"
+import { NavMain } from "@/components/Sidenav/nav-main"
+import { NavProjects } from "@/components/Sidenav/nav-projects"
+import { NavUser } from "@/components/Sidenav/nav-user"
+import { TeamSwitcher } from "@/components/Sidenav/team-switcher"
 import {
   Sidebar,
   SidebarContent,

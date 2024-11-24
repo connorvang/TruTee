@@ -19,7 +19,7 @@ export const sidebarConfig = {
   navMain: [
     {
       title: "Teesheets",
-      url: "/teesheets",
+      url: "/",
       icon: LandPlot,
       matchExact: true,
     },

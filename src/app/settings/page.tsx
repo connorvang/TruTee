@@ -1,6 +1,6 @@
 'use client'
 
-import { AppSidebar } from "@/components/app-sidebar"
+import { AppSidebar } from "@/components/Sidenav/app-sidebar"
 import TeeTimeSettings from "@/components/teeTimesSettings"
 import {
   Breadcrumb,
@@ -13,9 +13,7 @@ import {
   SidebarInset,
   SidebarProvider,
 } from "@/components/ui/sidebar"
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
 import { useCourse } from '@/contexts/CourseContext'
-import { useEffect, useState } from 'react'
 
 interface TeeTimeSettings {
   id: string;

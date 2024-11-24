@@ -1,5 +1,5 @@
-import { AppSidebar } from "@/components/app-sidebar"
-import TeeTimesList from "@/components/teeTimesList"
+import { AppSidebar } from "@/components/Sidenav/app-sidebar"
+import TeeTimesList from "@/components/Teesheets/teeTimesList"
 import {
   Breadcrumb,
   BreadcrumbItem,

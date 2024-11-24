@@ -10,7 +10,7 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Button } from "@/components/ui/button"
 import { Separator } from "@/components/ui/separator"
 import { Breadcrumb, BreadcrumbItem, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from "@/components/ui/breadcrumb"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+// import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Calendar } from "@/components/ui/calendar"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { cn } from "@/lib/utils"
@@ -117,20 +117,18 @@ export default function TeeTimesList() {
   const weekdays = getWeekDates(currentWeek, currentYear);
 
   const handlePreviousWeek = () => {
-    if (currentWeek === 1) {
-      setCurrentWeek(52);
-      setCurrentYear(currentYear - 1);
-    } else {
-      setCurrentWeek(currentWeek - 1);
+    if (date) {
+      const newDate = new Date(date);
+      newDate.setDate(date.getDate() - 7); // Subtract 7 days to go to the previous week
+      setDate(newDate);
     }
   };
 
   const handleNextWeek = () => {
-    if (currentWeek === 52) {
-      setCurrentWeek(1);
-      setCurrentYear(currentYear + 1);
-    } else {
-      setCurrentWeek(currentWeek + 1);
+    if (date) {
+      const newDate = new Date(date);
+      newDate.setDate(date.getDate() + 7); // Add 7 days to go to the next week
+      setDate(newDate);
     }
   };
 
@@ -170,12 +168,17 @@ export default function TeeTimesList() {
     <div className="flex items-center justify-between px-6 py-2 bg-background border-b border-gray-100">
 
       <div className="flex items-center gap-4">
-        <Button variant="outline" className="h-8">Today</Button>
+        <Button variant="outline" 
+          className="h-8" 
+          onClick={() => setDate(new Date())}
+        >
+          Today
+        </Button>
         <Separator orientation="vertical" className="h-4" />
         <Breadcrumb>
           <BreadcrumbList>
             <BreadcrumbItem>
-              <BreadcrumbPage>November 2024</BreadcrumbPage>
+              <BreadcrumbPage>{format(date!, "MMMM yyyy")}</BreadcrumbPage>
             </BreadcrumbItem>
             <BreadcrumbSeparator />
             <BreadcrumbItem>
@@ -231,7 +234,7 @@ export default function TeeTimesList() {
               <ChevronRight className="text-gray-500" size={16} />
             </Button>
           </div>
-          <Select>
+          {/* <Select>
             <SelectTrigger className="flex-1 h-8 gap-2">
               <SelectValue placeholder="Front 9" />
             </SelectTrigger>
@@ -239,7 +242,7 @@ export default function TeeTimesList() {
               <SelectItem value="front-9">Front 9</SelectItem>
               <SelectItem value="back-9">Back 9</SelectItem>
             </SelectContent>
-          </Select>
+          </Select> */}
         </div>
       </div>
     </div>

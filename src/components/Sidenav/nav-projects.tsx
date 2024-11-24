@@ -4,6 +4,7 @@ import { usePathname } from "next/navigation"
 import {
   type LucideIcon,
 } from "lucide-react"
+import Link from 'next/link';
 
 import {
   SidebarGroup,
@@ -30,13 +31,15 @@ export function NavProjects({
       <SidebarMenu>
         {projects.map((item) => (
           <SidebarMenuItem key={item.name}>
-            <SidebarMenuButton 
-              tooltip={item.name} 
-              isActive={pathname === item.url}
-            >
-              {item.icon && <item.icon />}
-              <span>{item.name}</span>
-            </SidebarMenuButton>
+            <Link href={item.url}>
+              <SidebarMenuButton 
+                tooltip={item.name} 
+                isActive={pathname === item.url}
+              >
+                {item.icon && <item.icon />}
+                <span>{item.name}</span>
+              </SidebarMenuButton>
+            </Link>
           </SidebarMenuItem>
         ))}
       </SidebarMenu>

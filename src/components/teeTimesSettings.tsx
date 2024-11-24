@@ -109,68 +109,44 @@ export default function TeeTimeSettings() {
     }
   }, [activeCourse?.id, settings, supabase]);
 
-  useEffect(() => {
-    if (!activeCourse?.id || !settings.booking_days_in_advance) return;
-
-    const checkAndGenerateTeeTimes = async () => {
-      const latestDate = addDays(new Date(), settings.booking_days_in_advance - 1);
-      const { data: existingTeeTimes } = await supabase
-        .from('tee_times')
-        .select('start_time')
-        .eq('course_id', activeCourse.id)
-        .gte('start_time', startOfDay(latestDate).toISOString())
-        .order('start_time', { ascending: false })
-        .limit(1);
-
-      if (!existingTeeTimes?.length) {
-        console.log("Generating tee times...");
-        await generateTeeTimes();
-      } else {
-        console.log("Tee times already exist, no need to generate.");
-      }
-    };
-
-    checkAndGenerateTeeTimes();
-  }, [activeCourse?.id, settings.booking_days_in_advance, supabase, generateTeeTimes]);
-
   const handleSave = async () => {
     if (!activeCourse?.id) {
       toast({
         title: "Error saving settings",
         description: "No active course selected",
         variant: "destructive",
-      })
-      return
+      });
+      return;
     }
 
     try {
-      const tzOffset = -(new Date().getTimezoneOffset() / 60)
-      const tzString = tzOffset >= 0 ? 
-        `-${tzOffset.toString().padStart(2, '0')}` : 
-        `+${Math.abs(tzOffset).toString().padStart(2, '0')}`
+      const tzOffset = -(new Date().getTimezoneOffset() / 60);
+      const tzString = tzOffset >= 0
+        ? `-${tzOffset.toString().padStart(2, '0')}`
+        : `+${Math.abs(tzOffset).toString().padStart(2, '0')}`;
 
       const settingsToSave = {
         interval_minutes: settings.interval_minutes,
         first_tee_time: `${settings.first_tee_time}:00${tzString}`,
         last_tee_time: `${settings.last_tee_time}:00${tzString}`,
         booking_days_in_advance: settings.booking_days_in_advance,
-        updated_at: new Date().toISOString()
-      }
+        updated_at: new Date().toISOString(),
+      };
 
       const { error, data } = await supabase
         .from('tee_time_settings')
         .update(settingsToSave)
         .eq('course_id', activeCourse.id)
-        .select()
+        .select();
 
       if (error) {
-        console.error('Save error:', error)
+        console.error('Save error:', error);
         toast({
           title: "Error saving settings",
           description: error.message,
           variant: "destructive",
-        })
-        return
+        });
+        return;
       }
 
       if (data && data.length > 0) {
@@ -178,35 +154,35 @@ export default function TeeTimeSettings() {
           title: "Success",
           description: "Your tee time settings have been updated successfully.",
           variant: "default",
-        })
+        });
       } else {
         toast({
           title: "Warning",
           description: "No changes were made to the settings.",
           variant: "default",
-        })
+        });
       }
 
-      // After successfully saving settings, generate tee times
+      // Generate tee times after saving settings
       await generateTeeTimes();
-      
+
       toast({
         title: "Success",
         description: "Settings saved and tee times generated successfully.",
         variant: "default",
-      })
+      });
 
     } catch (error) {
-      console.error('Unexpected error:', error)
+      console.error('Unexpected error:', error);
       toast({
         title: "Error",
         description: "An unexpected error occurred while saving settings.",
         variant: "destructive",
-      })
+      });
     }
-    
-    router.refresh()
-  }
+
+    router.refresh();
+  };
 
   return (
     <div className="space-y-6 max-w-2xl mx-auto">

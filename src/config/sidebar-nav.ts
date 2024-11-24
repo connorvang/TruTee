@@ -12,9 +12,9 @@ import {
 
 export const sidebarConfig = {
   user: {
-    name: "shadcn",
-    email: "m@example.com",
-    avatar: "/avatars/shadcn.jpg",
+    name: "Connor Van Gilder",
+    email: "cvangilder64@gmail.com",
+    avatar: "/avatars/connor.JPG",
   },
   navMain: [
     {

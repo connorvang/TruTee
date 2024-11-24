@@ -32,6 +32,9 @@ interface Booking {
   number_of_holes: number;
   has_cart: boolean;
   guests: number;
+  user: {
+    name: string;
+  }
 }
 
 interface TeeTime {
@@ -323,6 +326,7 @@ export default function TeeTimesList() {
                   const bookingIndex = Math.floor(idx / (item.bookings[0]?.guests + 1 || 1));
                   const booking = item.bookings[bookingIndex];
                   const isGuest = booking ? idx % (booking.guests + 1) !== 0 : false;
+                  const playerName = booking && booking.user ? booking.user.name : "Player name";
 
                   return (
                     <div
@@ -338,7 +342,7 @@ export default function TeeTimesList() {
                       {isBooked ? (
                         <Button
                           variant="ghost"
-                          className="w-full h-full p-2 hover:bg-gray-700 hover:text-whiteflex justify-start"
+                          className="w-full h-full p-2 hover:bg-gray-700 hover:text-white flex justify-start"
                           onClick={() => {
                             console.log('Booking:', booking); // Debug log
                             if (booking) {
@@ -348,11 +352,11 @@ export default function TeeTimesList() {
                         >
                           <CarFront className="mr-0" size={16} />
                           <CircleDollarSign className="mr-0" size={16} />
-                          <span className="text-xs font-semibold mr-4 w-4 text-center">
+                          <span className="text-xs font-semibold mr-2 w-4 text-center">
                             {booking?.number_of_holes || 0}
                           </span>
                           <span className="text-sm font-medium">
-                            {isGuest ? "Guest" : "Player name"}
+                            {isGuest ? "Guest" : playerName}
                           </span>
                         </Button>
                       ) : (

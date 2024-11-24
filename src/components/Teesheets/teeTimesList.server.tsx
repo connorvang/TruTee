@@ -18,7 +18,10 @@ async function getTeeTimes(date: string, courseId: string) {
         golfer_id,
         guests,
         number_of_holes,
-        has_cart
+        has_cart,
+        user:users (
+          name
+        )
       )
     `)
     .eq('course_id', courseId)

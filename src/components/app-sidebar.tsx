@@ -1,20 +1,7 @@
 "use client"
 
 import * as React from "react"
-import {
-  AudioWaveform,
-  CalendarIcon,
-  ChartBar,
-  CircleDollarSign,
-  Command,
-  GalleryVerticalEnd,
-  HelpCircle,
-  LandPlot,
-  MessagesSquare,
-  SettingsIcon,
-  TagIcon,
-  UsersIcon,
-} from "lucide-react"
+import { usePathname } from "next/navigation"
 
 import { NavMain } from "@/components/nav-main"
 import { NavProjects } from "@/components/nav-projects"
@@ -27,94 +14,34 @@ import {
   SidebarHeader,
   SidebarRail,
 } from "@/components/ui/sidebar"
-
-// This is sample data.
-const data = {
-  user: {
-    name: "shadcn",
-    email: "m@example.com",
-    avatar: "/avatars/shadcn.jpg",
-  },
-  teams: [
-    {
-      name: "Green Spring Golf Club",
-      logo: GalleryVerticalEnd,
-      plan: "Professional",
-    },
-    {
-      name: "Acme Corp.",
-      logo: AudioWaveform,
-      plan: "Startup",
-    },
-    {
-      name: "Evil Corp.",
-      logo: Command,
-      plan: "Free",
-    },
-  ],
-  navMain: [
-    {
-      title: "Teesheets",
-      url: "/",
-      icon: LandPlot,
-    },
-    {
-      title: "Events",
-      url: "#",
-      icon: CalendarIcon,
-    },
-    {
-      title: "Customers",
-      url: "#",
-      icon: UsersIcon,
-    },
-    {
-      title: "Pricing",
-      url: "#",
-      icon: CircleDollarSign,
-    },
-    {
-      title: "Promotions",
-      url: "#",
-      icon: TagIcon,
-    },
-    {
-      title: "Messages",
-      url: "#",
-      icon: MessagesSquare,
-    },
-    {
-      title: "Reports",
-      url: "#",
-      icon: ChartBar,
-    },
-  ],
-  projects: [
-    {
-      name: "Settings",
-      url: "/settings",
-      icon: SettingsIcon,
-    },
-    {
-      name: "Help",
-      url: "#",
-      icon: HelpCircle,
-    },
-  ],
-}
+import { sidebarConfig } from "@/config/sidebar-nav"
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
+  const pathname = usePathname()
+
+  const activeNavMain = sidebarConfig.navMain.map(item => ({
+    ...item,
+    isActive: 'matchExact' in item
+      ? pathname === item.url
+      : pathname.startsWith(item.url) && item.url !== "#"
+  }))
+
+  const activeProjects = sidebarConfig.projects.map(item => ({
+    ...item,
+    isActive: item.url !== "#" && pathname.startsWith(item.url)
+  }))
+
   return (
     <Sidebar collapsible="icon" {...props}>
       <SidebarHeader>
         <TeamSwitcher />
       </SidebarHeader>
       <SidebarContent>
-        <NavMain items={data.navMain} />
-        <NavProjects projects={data.projects} />
+        <NavMain items={activeNavMain} />
+        <NavProjects projects={activeProjects} />
       </SidebarContent>
       <SidebarFooter>
-        <NavUser user={data.user} />
+        <NavUser user={sidebarConfig.user} />
       </SidebarFooter>
       <SidebarRail />
     </Sidebar>

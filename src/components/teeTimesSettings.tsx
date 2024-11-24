@@ -1,14 +1,14 @@
 "use client"
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
 import { useRouter } from 'next/navigation'
 import { useCourse } from '@/contexts/CourseContext'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Button } from "@/components/ui/button"
 import { useToast } from '@/hooks/use-toast'
+import { addDays, startOfDay } from 'date-fns'
 
 interface TeeTimeSettings {
   id?: string
@@ -53,29 +53,22 @@ export default function TeeTimeSettings() {
     }
 
     loadSettings()
-  }, [activeCourse?.id])
+  }, [activeCourse?.id, supabase])
 
-  const generateTeeTimes = async () => {
+  const generateTeeTimes = useCallback(async () => {
     if (!activeCourse?.id) return;
     
     const daysToGenerate = settings.booking_days_in_advance;
-    const startDate = new Date();
+    const startDate = addDays(startOfDay(new Date()), 1);
     const teeTimesToInsert = [];
 
-    // Generate for each day
+    // Generate for each day (starting from tomorrow)
     for (let day = 0; day < daysToGenerate; day++) {
-      const currentDate = new Date(startDate);
-      currentDate.setDate(currentDate.getDate() + day);
+      const currentDate = addDays(startDate, day);
       
       // Convert time strings to Date objects for comparison
       const startTime = new Date(`${currentDate.toDateString()} ${settings.first_tee_time}`);
       const endTime = new Date(`${currentDate.toDateString()} ${settings.last_tee_time}`);
-      
-      // Skip times in the past for today
-      const now = new Date();
-      if (day === 0) {  // If it's today
-        startTime.setTime(Math.max(startTime.getTime(), now.getTime()));
-      }
       
       // Generate times for this day
       for (let time = startTime; time <= endTime; time.setMinutes(time.getMinutes() + settings.interval_minutes)) {
@@ -91,18 +84,19 @@ export default function TeeTimeSettings() {
       }
     }
 
-    // Delete existing future tee times
+    // Delete existing future tee times (from tomorrow onwards)
+    const tomorrow = addDays(startOfDay(new Date()), 1);
     const { error: deleteError } = await supabase
       .from('tee_times')
       .delete()
       .eq('course_id', activeCourse.id)
-      .gte('start_time', new Date().toISOString());
+      .gte('start_time', tomorrow.toISOString());
 
     if (deleteError) {
       throw new Error('Failed to delete existing tee times');
     }
 
-    // Insert new tee times in batches of 1000 (Supabase limit)
+    // Insert new tee times in batches
     for (let i = 0; i < teeTimesToInsert.length; i += 1000) {
       const batch = teeTimesToInsert.slice(i, i + 1000);
       const { error: insertError } = await supabase
@@ -113,7 +107,40 @@ export default function TeeTimeSettings() {
         throw new Error('Failed to insert tee times');
       }
     }
-  };
+  }, [activeCourse?.id, settings, supabase]);
+
+  useEffect(() => {
+    if (!activeCourse?.id || !settings.booking_days_in_advance) return;
+
+    const checkAndGenerateTeeTimes = async () => {
+      const latestDate = addDays(new Date(), settings.booking_days_in_advance - 1);
+      const { data: existingTeeTimes } = await supabase
+        .from('tee_times')
+        .select('start_time')
+        .eq('course_id', activeCourse.id)
+        .gte('start_time', startOfDay(latestDate).toISOString())
+        .order('start_time', { ascending: false })
+        .limit(1);
+
+      if (!existingTeeTimes?.length) {
+        await generateTeeTimes();
+      }
+    };
+
+    checkAndGenerateTeeTimes();
+
+    const now = new Date();
+    const tomorrow = new Date(now);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    tomorrow.setHours(0, 0, 0, 0);
+    const msUntilMidnight = tomorrow.getTime() - now.getTime();
+
+    const timer = setTimeout(() => {
+      checkAndGenerateTeeTimes();
+    }, msUntilMidnight);
+
+    return () => clearTimeout(timer);
+  }, [activeCourse?.id, settings.booking_days_in_advance, supabase, generateTeeTimes]);
 
   const handleSave = async () => {
     if (!activeCourse?.id) {

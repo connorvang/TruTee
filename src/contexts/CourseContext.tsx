@@ -51,7 +51,7 @@ export function CourseProvider({ children }: { children: React.ReactNode }) {
     }
 
     loadCourse()
-  }, [])
+  }, [supabase])
 
   const value = {
     activeCourse,

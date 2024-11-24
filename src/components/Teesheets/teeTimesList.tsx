@@ -36,6 +36,23 @@ interface TeeTime {
   number_of_holes: number;
 }
 
+// Skeleton component
+const Skeleton = () => (
+  <div className="flex items-center border-b px-6 py-2 border-gray-100 animate-pulse">
+    <div className="w-24 pr-4 text-sm font-small text-right">
+      <div className="h-4 bg-gray-100 rounded w-full"></div>
+    </div>
+    <div className="w-20 pr-4 text-sm font-small text-gray-600 text-right">
+      <div className="h-4 bg-gray-100 rounded w-full"></div>
+    </div>
+    <div className="flex flex-1 space-x-2">
+      {Array.from({ length: 4 }).map((_, idx) => (
+        <div key={idx} className="flex-1 h-8 bg-gray-100 border border-gray-200 rounded-md"></div>
+      ))}
+    </div>
+  </div>
+);
+
 export default function TeeTimesList() {
   const [currentWeek, setCurrentWeek] = useState(47);
   const [currentYear, setCurrentYear] = useState(2024);
@@ -269,8 +286,10 @@ export default function TeeTimesList() {
       {/* Tee times */}
       <div className="relative">
         {loadingTeeTimes ? (
-          <div className="flex items-center justify-center py-8">
-            Loading tee times...
+          <div className="flex flex-col">
+            {Array.from({ length: 10 }).map((_, idx) => (
+              <Skeleton key={idx} />
+            ))}
           </div>
         ) : (
           teeTimes.map((item) => (

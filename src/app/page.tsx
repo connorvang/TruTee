@@ -15,6 +15,11 @@ import {
 } from "@/components/ui/sidebar"
 import { PlusIcon } from "lucide-react"
 
+export const metadata = {
+  title: "Teesheets - TruTee",
+  description: "The main page for managing tee times",
+}
+
 export default function Page() {
   return (
     <SidebarProvider>

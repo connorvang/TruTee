@@ -41,8 +41,6 @@ export function NavUser({
 }) {
   const { isMobile } = useSidebar()
 
-  console.log("Avatar src:", user.avatar);
-
   return (
     <SidebarMenu>
       <SidebarMenuItem>

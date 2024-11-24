@@ -26,6 +26,14 @@ const getWeekNumber = (date: Date) => {
   return Math.ceil((pastDaysOfYear + firstDayOfYear.getDay() + 1) / 7);
 };
 
+interface Booking {
+  id: string;
+  golfer_id: string;
+  number_of_holes: number;
+  has_cart: boolean;
+  guests: number;
+}
+
 interface TeeTime {
   id: string;
   start_time: string;
@@ -34,6 +42,7 @@ interface TeeTime {
   booked_spots: number;
   has_cart: boolean;
   number_of_holes: number;
+  bookings: Booking[];
 }
 
 // Skeleton component
@@ -65,6 +74,7 @@ export default function TeeTimesList() {
   const [loadingTeeTimes, setLoadingTeeTimes] = useState<boolean>(true);
   const [selectedBookedTeeTime, setSelectedBookedTeeTime] = useState<TeeTime | null>(null)
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
+  const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null)
 
   // Update week and selected day when date changes
   useEffect(() => {
@@ -150,13 +160,10 @@ export default function TeeTimesList() {
   };
 
   // Helper function to render spots
-  const renderSpots = (availableSpots: number, bookedSpots: number, hasCart: boolean, numberOfHoles: number) => {
+  const renderSpots = (availableSpots: number, bookedSpots: number) => {
     const totalSpots = availableSpots + bookedSpots;
-    return Array.from({ length: totalSpots }, (_, index) => {
-      const isBooked = index < bookedSpots;
-      return { isBooked, hasCart, numberOfHoles };
-    });
-  }
+    return Array.from({ length: totalSpots }, (_, index) => index < bookedSpots);
+  };
 
   // Helper function to get a date from a day in the current week
   const getDateFromDay = (dayShort: string) => {
@@ -177,6 +184,17 @@ export default function TeeTimesList() {
     setSelectedTeeTime(teeTime)
     setIsBookingModalOpen(true)
   }
+
+  const handleDeleteBookingClick = (teeTime: TeeTime, booking: Booking) => {
+    console.log('Delete clicked:', { teeTime, booking }); // Debug log
+    setSelectedBookedTeeTime(teeTime);
+    setSelectedBooking(booking);
+    setIsDeleteDialogOpen(true);
+  };
+
+  // Calculate total available and booked spots
+  const totalAvailableSpots = teeTimes.reduce((sum, teeTime) => sum + teeTime.available_spots, 0);
+  const totalBookedSpots = teeTimes.reduce((sum, teeTime) => sum + teeTime.booked_spots, 0);
 
   return (
     <div className="p-0">
@@ -229,10 +247,10 @@ export default function TeeTimesList() {
       <div className="flex items-center gap-8">
         <div className="flex items-center gap-4">
           <div className="flex items-center gap-1 text-sm font-medium">
-            <Circle className="flex text-gray-900" size={16} /> 52
+            <Circle className="flex text-gray-900" size={16} /> {totalAvailableSpots}
           </div>
           <div className="flex items-center gap-1 text-sm font-medium">
-            <Users className="text-gray-900" size={16} /> 24
+            <Users className="text-gray-900" size={16} /> {totalBookedSpots}
           </div>
           <div className="flex items-center gap-1 text-sm font-medium">
             <CarFront className="text-gray-900" size={16} /> 2
@@ -301,42 +319,54 @@ export default function TeeTimesList() {
                 ${item.price}
               </div>
               <div className="flex flex-1 space-x-2">
-                {renderSpots(item.available_spots, item.booked_spots, item.has_cart, item.number_of_holes).map((spot, idx) => (
-                  <div
-                    key={idx}
-                    className={`flex items-center ${
-                      spot.isBooked ? "justify-start" : "justify-center"
-                    } flex-1 h-8 rounded-md ${
-                      spot.isBooked
-                        ? "bg-gray-900 text-white"
-                        : "bg-gray-100 border border-gray-200"
-                    }`}
-                  >
-                    {spot.isBooked ? (
-                      <Button
-                        variant="ghost"
-                        className="w-full h-full p-2 bg-gray-900 text-white hover:bg-gray-800 hover:text-whiteflex justify-start"
-                        onClick={() => {
-                          setSelectedBookedTeeTime(item)
-                          setIsDeleteDialogOpen(true)
-                        }}
-                      >
-                        <CarFront className="mr-0" size={16} />
-                        <CircleDollarSign className="mr-0" size={16} />
-                        <span className="text-xs font-semibold mr-4 w-4 text-center">18</span>
-                        <span className="text-sm font-medium">Player name</span>
-                      </Button>
-                    ) : (
-                      <Button
-                        variant="ghost"
-                        className="w-full h-full p-0 hover:bg-gray-200"
-                        onClick={() => handleBookingClick(item)}
-                      >
-                        <PlusCircle className="text-gray-500" size={16} />
-                      </Button>
-                    )}
-                  </div>
-                ))}
+                {renderSpots(item.available_spots, item.booked_spots).map((isBooked, idx) => {
+                  const bookingIndex = Math.floor(idx / (item.bookings[0]?.guests + 1 || 1));
+                  const booking = item.bookings[bookingIndex];
+                  const isGuest = booking ? idx % (booking.guests + 1) !== 0 : false;
+
+                  return (
+                    <div
+                      key={idx}
+                      className={`flex items-center ${
+                        isBooked ? "justify-start" : "justify-center"
+                      } flex-1 h-8 rounded-md ${
+                        isBooked
+                          ? isGuest ? "bg-gray-600 text-white" : "bg-gray-900 text-white"
+                          : "bg-gray-100 border border-gray-200"
+                      }`}
+                    >
+                      {isBooked ? (
+                        <Button
+                          variant="ghost"
+                          className="w-full h-full p-2 hover:bg-gray-700 hover:text-whiteflex justify-start"
+                          onClick={() => {
+                            console.log('Booking:', booking); // Debug log
+                            if (booking) {
+                              handleDeleteBookingClick(item, booking);
+                            }
+                          }}
+                        >
+                          <CarFront className="mr-0" size={16} />
+                          <CircleDollarSign className="mr-0" size={16} />
+                          <span className="text-xs font-semibold mr-4 w-4 text-center">
+                            {booking?.number_of_holes || 0}
+                          </span>
+                          <span className="text-sm font-medium">
+                            {isGuest ? "Guest" : "Player name"}
+                          </span>
+                        </Button>
+                      ) : (
+                        <Button
+                          variant="ghost"
+                          className="w-full h-full p-0 hover:bg-gray-200"
+                          onClick={() => handleBookingClick(item)}
+                        >
+                          <PlusCircle className="text-gray-500" size={16} />
+                        </Button>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
             </div>
           ))
@@ -353,13 +383,14 @@ export default function TeeTimesList() {
           />
         )}
 
-        {selectedBookedTeeTime && (
+        {selectedBookedTeeTime && selectedBooking && (
           <DeleteBookingDialog
             isOpen={isDeleteDialogOpen}
             onClose={() => setIsDeleteDialogOpen(false)}
             teeTime={selectedBookedTeeTime}
+            booking={selectedBooking}
             onDeleteComplete={() => {
-              setDate(new Date(date!))
+              setDate(new Date(date!));
             }}
           />
         )}

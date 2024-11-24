@@ -4,7 +4,6 @@ import { format } from 'date-fns'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
-import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { useToast } from "@/hooks/use-toast"
 
@@ -23,7 +22,7 @@ interface BookingModalProps {
 export function BookingModal({ isOpen, onClose, teeTime, onBookingComplete }: BookingModalProps) {
   const [numberOfSpots, setNumberOfSpots] = useState(1)
   const [numberOfHoles, setNumberOfHoles] = useState<9 | 18>(18)
-  const [hasCart, setHasCart] = useState<'walking' | 'cart'>('walking')
+  const [hasCart, setHasCart] = useState<'walking' | 'cart'>('cart')
   const [isLoading, setIsLoading] = useState(false)
   const supabase = createClientComponentClient()
   const { toast } = useToast()
@@ -32,8 +31,9 @@ export function BookingModal({ isOpen, onClose, teeTime, onBookingComplete }: Bo
     try {
       setIsLoading(true)
       const TEMP_GOLFER_ID = '7256d5b4-754e-477b-9ace-7f9cfb172040'
+      const guests = numberOfSpots - 1
 
-      // Insert booking with temporary golfer_id
+      // Insert booking with golfer and guests
       const { error: bookingError } = await supabase
         .from('bookings')
         .insert({
@@ -42,6 +42,7 @@ export function BookingModal({ isOpen, onClose, teeTime, onBookingComplete }: Bo
           booked_spots: numberOfSpots,
           number_of_holes: numberOfHoles,
           has_cart: hasCart,
+          guests: guests,
         })
 
       if (bookingError) throw bookingError
@@ -90,13 +91,21 @@ export function BookingModal({ isOpen, onClose, teeTime, onBookingComplete }: Bo
         <div className="space-y-4 py-4">
           <div className="space-y-2">
             <Label>Players</Label>
-            <Input
-              type="number"
-              min={1}
-              max={teeTime.available_spots}
-              value={numberOfSpots}
-              onChange={(e) => setNumberOfSpots(parseInt(e.target.value))}
-            />
+            <Select 
+              value={numberOfSpots.toString()} 
+              onValueChange={(value) => setNumberOfSpots(parseInt(value))}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Select players" />
+              </SelectTrigger>
+              <SelectContent>
+                {Array.from({ length: teeTime.available_spots }, (_, i) => i + 1).map((num) => (
+                  <SelectItem key={num} value={num.toString()}>
+                    {num} {num === 1 ? 'Player' : 'Players'}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
           <div className="space-y-4">

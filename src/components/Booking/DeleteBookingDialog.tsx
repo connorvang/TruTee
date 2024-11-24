@@ -1,7 +1,7 @@
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog"
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
 import { useToast } from "@/hooks/use-toast"
 import { useState } from "react"
+import { createClientComponentClient } from "@supabase/auth-helpers-nextjs"
 
 interface DeleteBookingDialogProps {
   isOpen: boolean
@@ -11,51 +11,67 @@ interface DeleteBookingDialogProps {
     available_spots: number
     booked_spots: number
   }
+  booking: {
+    id: string
+    guests: number
+  }
   onDeleteComplete: () => void
 }
 
-export function DeleteBookingDialog({ isOpen, onClose, teeTime, onDeleteComplete }: DeleteBookingDialogProps) {
+const deleteBooking = async (
+  teeTimeId: string, 
+  bookingId: string, 
+  totalSpots: number,
+  teeTime: { available_spots: number; booked_spots: number }
+) => {
+  const supabase = createClientComponentClient();
+
+  // Start a transaction
+  const { error: bookingError } = await supabase
+    .from('bookings')
+    .delete()
+    .eq('id', bookingId);
+
+  if (bookingError) throw bookingError;
+
+  // Update tee time available spots
+  const { error: updateError } = await supabase
+    .from('tee_times')
+    .update({
+      available_spots: teeTime.available_spots + totalSpots,
+      booked_spots: teeTime.booked_spots - totalSpots
+    })
+    .eq('id', teeTimeId);
+
+  if (updateError) throw updateError;
+};
+
+export function DeleteBookingDialog({ isOpen, onClose, teeTime, booking, onDeleteComplete }: DeleteBookingDialogProps) {
   const [isCancelling, setIsCancelling] = useState(false)
-  const supabase = createClientComponentClient()
   const { toast } = useToast()
 
-  const handleCancelBookings = async () => {
+  const handleDeleteBooking = async () => {
     try {
       setIsCancelling(true)
+      const totalSpots = booking.guests + 1; // Total spots = guests + main booker
+      console.log('Deleting booking:', { teeTimeId: teeTime.id, bookingId: booking.id, totalSpots });
 
-      // Delete all bookings for this tee time
-      const { error: deleteError } = await supabase
-        .from('bookings')
-        .delete()
-        .eq('teetime_id', teeTime.id)
-
-      if (deleteError) throw deleteError
-
-      // Update tee time to reset booked spots
-      const { error: updateError } = await supabase
-        .from('tee_times')
-        .update({
-          available_spots: teeTime.available_spots + teeTime.booked_spots,
-          booked_spots: 0
-        })
-        .eq('id', teeTime.id)
-
-      if (updateError) throw updateError
+      await deleteBooking(teeTime.id, booking.id, totalSpots, teeTime)
 
       toast({
-        title: "Success!",
-        description: "Bookings have been cancelled.",
+        title: "Success",
+        description: "Booking cancelled successfully.",
         variant: "default",
-        className: "bg-white dark:bg-gray-900",
+        className: 'bg-white dark:bg-gray-900'
       })
-
+      
       onDeleteComplete()
       onClose()
     } catch (error) {
-      console.error('Cancel booking error:', error)
+      console.error('Error deleting booking:', error)
       toast({
         title: "Error",
-        description: "Failed to cancel bookings. Please try again.",
+        description: "Failed to delete booking. Please try again.",
         variant: "destructive",
       })
     } finally {
@@ -69,13 +85,17 @@ export function DeleteBookingDialog({ isOpen, onClose, teeTime, onDeleteComplete
         <AlertDialogHeader>
           <AlertDialogTitle>Cancel Bookings</AlertDialogTitle>
           <AlertDialogDescription>
-            Are you sure you want to cancel all bookings for this tee time? This action cannot be undone.
+            Are you sure you want to cancel this booking? This action cannot be undone.
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
-          <AlertDialogCancel>Cancel</AlertDialogCancel>
-          <AlertDialogAction onClick={handleCancelBookings} disabled={isCancelling}>
-            {isCancelling ? "Cancelling..." : "Confirm"}
+          <AlertDialogCancel>Close</AlertDialogCancel>
+          <AlertDialogAction 
+            onClick={handleDeleteBooking} 
+            disabled={isCancelling}
+            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+          >
+            {isCancelling ? "Deleting..." : "Cancel booking"}
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>

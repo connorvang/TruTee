@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/sidebar"
 import { useCourse } from '@/contexts/CourseContext'
 
+
 interface TeeTimeSettings {
   id: string;
   course_id: string;

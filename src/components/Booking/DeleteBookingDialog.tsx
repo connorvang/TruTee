@@ -54,7 +54,6 @@ export function DeleteBookingDialog({ isOpen, onClose, teeTime, booking, onDelet
     try {
       setIsCancelling(true)
       const totalSpots = booking.guests + 1; // Total spots = guests + main booker
-      console.log('Deleting booking:', { teeTimeId: teeTime.id, bookingId: booking.id, totalSpots });
 
       await deleteBooking(teeTime.id, booking.id, totalSpots, teeTime)
 

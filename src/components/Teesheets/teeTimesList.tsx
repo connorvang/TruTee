@@ -1,6 +1,6 @@
 "use client"
 
-import { ChevronLeft, ChevronRight, PlusCircle, Users, ChevronDown, CircleDollarSign, CarFront, Circle } from 'lucide-react'
+import { ChevronLeft, ChevronRight, PlusCircle, Users, ChevronDown, CarFront, Circle, LandPlot, Footprints } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { format } from "date-fns";
 import { BookingModal } from '../Booking/bookingModal'
@@ -189,7 +189,6 @@ export default function TeeTimesList() {
   }
 
   const handleDeleteBookingClick = (teeTime: TeeTime, booking: Booking) => {
-    console.log('Delete clicked:', { teeTime, booking }); // Debug log
     setSelectedBookedTeeTime(teeTime);
     setSelectedBooking(booking);
     setIsDeleteDialogOpen(true);
@@ -312,6 +311,11 @@ export default function TeeTimesList() {
               <Skeleton key={idx} />
             ))}
           </div>
+        ) : teeTimes.length === 0 ? (
+          <div className="flex flex-col items-center justify-center gap-4 py-16 text-gray-500">
+            <LandPlot size={32} />
+            No tee times available for this date.
+          </div>
         ) : (
           teeTimes.map((item) => (
             <div key={item.id} className="flex items-center border-b px-6 py-2 border-gray-100">
@@ -344,14 +348,13 @@ export default function TeeTimesList() {
                           variant="ghost"
                           className="w-full h-full p-2 hover:bg-gray-700 hover:text-white flex justify-start"
                           onClick={() => {
-                            console.log('Booking:', booking); // Debug log
                             if (booking) {
                               handleDeleteBookingClick(item, booking);
                             }
                           }}
                         >
-                          <CarFront className="mr-0" size={16} />
-                          <CircleDollarSign className="mr-0" size={16} />
+                          {booking?.has_cart ? <CarFront className="mr-0" size={16} /> : <Footprints className="mr-0" size={16} />}
+                          
                           <span className="text-xs font-semibold mr-2 w-4 text-center">
                             {booking?.number_of_holes || 0}
                           </span>

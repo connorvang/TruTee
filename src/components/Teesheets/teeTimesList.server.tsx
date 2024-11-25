@@ -20,6 +20,7 @@ async function getTeeTimes(date: string, courseId: string) {
         number_of_holes,
         has_cart,
         user:users (
+          handicap,
           name
         )
       )

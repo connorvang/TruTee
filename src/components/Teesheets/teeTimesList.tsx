@@ -33,6 +33,7 @@ interface Booking {
   has_cart: boolean;
   guests: number;
   user: {
+    handicap: number;
     name: string;
   }
 }
@@ -70,7 +71,7 @@ export default function TeeTimesList() {
   const [currentYear, setCurrentYear] = useState(2024);
   const [date, setDate] = useState<Date | undefined>(new Date());
   const [selectedDay, setSelectedDay] = useState<string>("");
-  const { activeCourse, isLoading } = useCourse()
+  const {activeCourse, isLoading } = useCourse()
   const [selectedTeeTime, setSelectedTeeTime] = useState<TeeTime | null>(null)
   const [isBookingModalOpen, setIsBookingModalOpen] = useState(false)
   const [teeTimes, setTeeTimes] = useState<TeeTime[]>([]);
@@ -201,17 +202,21 @@ export default function TeeTimesList() {
   return (
     <div className="p-0">
 
-    {/* Navigation */}
-    <div className="flex items-center justify-between px-6 py-2 bg-background border-b border-gray-100">
 
+    <div className="flex items-center justify-between px-6 py-2 bg-background border-b border-gray-100">
       <div className="flex items-center gap-4">
+        
+        {/* Today button */}
         <Button variant="outline" 
           className="h-8" 
           onClick={() => setDate(new Date())}
         >
           Today
         </Button>
+
         <Separator orientation="vertical" className="h-4" />
+
+        {/* Date picker */}
         <Breadcrumb>
           <BreadcrumbList>
             <BreadcrumbItem>
@@ -246,6 +251,7 @@ export default function TeeTimesList() {
         </Breadcrumb>
       </div>
 
+      {/* Tee times info */}
       <div className="flex items-center gap-8">
         <div className="flex items-center gap-4">
           <div className="flex items-center gap-1 text-sm font-medium">
@@ -254,14 +260,14 @@ export default function TeeTimesList() {
           <div className="flex items-center gap-1 text-sm font-medium">
             <Users className="text-gray-900" size={16} /> {totalBookedSpots}
           </div>
-          <div className="flex items-center gap-1 text-sm font-medium">
-            <CarFront className="text-gray-900" size={16} /> 2
-          </div>
         </div>
+
+        {/* Weather details */}
         <WeatherInfo />
 
         <Separator orientation="vertical" className="h-4" />
         
+        {/* Week arrows navigation */}
         <div className="flex items-center gap-4">
           <div className="flex items-center gap-2">
             <Button variant="ghost" className="w-8 h-8" onClick={handlePreviousWeek}>
@@ -271,16 +277,8 @@ export default function TeeTimesList() {
               <ChevronRight className="text-gray-500" size={16} />
             </Button>
           </div>
-          {/* <Select>
-            <SelectTrigger className="flex-1 h-8 gap-2">
-              <SelectValue placeholder="Front 9" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="front-9">Front 9</SelectItem>
-              <SelectItem value="back-9">Back 9</SelectItem>
-            </SelectContent>
-          </Select> */}
         </div>
+
       </div>
     </div>
 
@@ -319,7 +317,7 @@ export default function TeeTimesList() {
         ) : (
           teeTimes.map((item) => (
             <div key={item.id} className="flex items-center border-b px-6 py-2 border-gray-100">
-              <div className="w-24 pr-4 text-sm font-small text-right">
+              <div className="w-20 pr-4 text-sm font-small text-right">
                 {format(new Date(item.start_time), 'h:mm a')}
               </div>
               <div className="w-20 pr-4 text-sm font-small text-gray-600 text-right">
@@ -331,6 +329,8 @@ export default function TeeTimesList() {
                   const booking = item.bookings[bookingIndex];
                   const isGuest = booking ? idx % (booking.guests + 1) !== 0 : false;
                   const playerName = booking && booking.user ? booking.user.name : "Player name";
+                  const rawHandicap = booking && booking.user ? booking.user.handicap : 0.0;
+                  const playerHandicap = rawHandicap < 0 ? `+${Math.abs(rawHandicap)}` : rawHandicap.toString();
 
                   return (
                     <div
@@ -355,12 +355,13 @@ export default function TeeTimesList() {
                         >
                           {booking?.has_cart ? <CarFront className="mr-0" size={16} /> : <Footprints className="mr-0" size={16} />}
                           
-                          <span className="text-xs font-semibold mr-2 w-4 text-center">
+                          <span className="text-xs font-bold mr-2 w-4 text-center">
                             {booking?.number_of_holes || 0}
                           </span>
                           <span className="text-sm font-medium">
-                            {isGuest ? "Guest" : playerName}
+                            {isGuest ? `Guest (0)` : `${playerName} (${playerHandicap})`}
                           </span>
+                  
                         </Button>
                       ) : (
                         <Button

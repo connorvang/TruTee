@@ -186,6 +186,7 @@ export default function TeeTimeSettings() {
 
   return (
     <div className="space-y-6 max-w-2xl mx-auto">
+      <div className="font-bold text-2xl">Settings</div>
         <div className="space-y-2">
           <Label htmlFor="interval">Tee Time Interval</Label>
           <Select

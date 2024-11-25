@@ -12,8 +12,8 @@ import { Separator } from "@/components/ui/separator"
 import {
   SidebarInset,
   SidebarProvider,
+  SidebarTrigger,
 } from "@/components/ui/sidebar"
-import { useCourse } from '@/contexts/CourseContext'
 
 
 interface TeeTimeSettings {
@@ -26,17 +26,17 @@ interface TeeTimeSettings {
 }
 
 export default function SettingsPage() {
-  const { activeCourse } = useCourse()
-
   return (
     <SidebarProvider>
       <AppSidebar />
       <SidebarInset>
-        <header className="flex h-16 shrink-0 items-center gap-2 border-b border-gray-100 transition-[width,height] ease-linear group-has-[[data-collapsible=icon]]/sidebar-wrapper:h-12">
-          <div className="flex items-center gap-2 px-6">
+        <header className="flex h-16 shrink-0 gap-2 border-b border-gray-100 transition-[width,height] ease-linear group-has-[[data-collapsible=icon]]/sidebar-wrapper:h-12">
+          <div className="flex flex-1 items-center gap-2 px-6">
+            <SidebarTrigger className="-ml-1" />
+            <Separator orientation="vertical" className="mr-2 h-4" />
             <Breadcrumb>
               <BreadcrumbList>
-                <BreadcrumbItem>
+                <BreadcrumbItem className="hidden md:block">
                   <BreadcrumbLink href="/settings">
                     Settings
                   </BreadcrumbLink>
@@ -45,22 +45,8 @@ export default function SettingsPage() {
             </Breadcrumb>
           </div>
         </header>
-        
-        <div className="flex-1 space-y-6 p-10 pb-16">
-          <div className="space-y-0.5 max-w-2xl mx-auto">
-            <h2 className="text-2xl font-bold tracking-tight">
-              Settings
-            </h2>
-            <p className="text-muted-foreground">
-              Manage your tee time settings.
-            </p>
-          </div>
-          <Separator className="max-w-2xl mx-auto"/>
-          {!activeCourse ? (
-            <p className="text-muted-foreground max-w-2xl mx-auto">Please select a course to view settings.</p>
-          ) : (
-            <TeeTimeSettings />
-          )}
+        <div className="pt-16">
+          <TeeTimeSettings />
         </div>
       </SidebarInset>
     </SidebarProvider>

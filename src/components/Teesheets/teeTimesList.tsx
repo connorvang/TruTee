@@ -52,7 +52,7 @@ interface TeeTime {
 // Skeleton component
 const Skeleton = () => (
   <div className="flex items-center border-b px-6 py-2 border-gray-100 animate-pulse">
-    <div className="w-24 pr-4 text-sm font-small text-right">
+    <div className="w-20 pr-4 text-sm font-small text-right">
       <div className="h-4 bg-gray-100 rounded w-full"></div>
     </div>
     <div className="w-20 pr-4 text-sm font-small text-gray-600 text-right">

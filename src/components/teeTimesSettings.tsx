@@ -16,6 +16,7 @@ interface TeeTimeSettings {
   first_tee_time: string
   last_tee_time: string
   booking_days_in_advance: number
+  price: number
 }
 
 export default function TeeTimeSettings() {
@@ -29,17 +30,20 @@ export default function TeeTimeSettings() {
     first_tee_time: '06:00',
     last_tee_time: '18:00',
     booking_days_in_advance: 7,
+    price: 69.00,
   })
+
+  const [priceInput, setPriceInput] = useState(settings.price.toFixed(2))
 
   useEffect(() => {
     async function loadSettings() {
-      if (!activeCourse?.id) return
+      if (!activeCourse?.id) return;
 
       const { data } = await supabase
         .from('tee_time_settings')
         .select('*')
         .eq('course_id', activeCourse.id)
-        .single()
+        .single();
 
       if (data) {
         setSettings({
@@ -47,13 +51,15 @@ export default function TeeTimeSettings() {
           first_tee_time: data.first_tee_time?.substring(0, 5) || '06:00',
           last_tee_time: data.last_tee_time?.substring(0, 5) || '18:00',
           interval_minutes: data.interval_minutes || 10,
-          booking_days_in_advance: data.booking_days_in_advance || 7
-        })
+          booking_days_in_advance: data.booking_days_in_advance || 7,
+          price: data.price || 69.00,
+        });
+        setPriceInput(data.price.toFixed(2));
       }
     }
 
-    loadSettings()
-  }, [activeCourse?.id, supabase])
+    loadSettings();
+  }, [activeCourse?.id, supabase]);
 
   const generateTeeTimes = useCallback(async () => {
     if (!activeCourse?.id) return;
@@ -119,6 +125,16 @@ export default function TeeTimeSettings() {
       return;
     }
 
+    const price = parseFloat(priceInput);
+    if (isNaN(price)) {
+      toast({
+        title: "Invalid Price",
+        description: "Please enter a valid price.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     try {
       const tzOffset = -(new Date().getTimezoneOffset() / 60);
       const tzString = tzOffset >= 0
@@ -130,6 +146,7 @@ export default function TeeTimeSettings() {
         first_tee_time: `${settings.first_tee_time}:00${tzString}`,
         last_tee_time: `${settings.last_tee_time}:00${tzString}`,
         booking_days_in_advance: settings.booking_days_in_advance,
+        price: price,
         updated_at: new Date().toISOString(),
       };
 
@@ -165,6 +182,24 @@ export default function TeeTimeSettings() {
 
       // Generate tee times after saving settings
       await generateTeeTimes();
+
+      // Update future tee times with the new price
+      const tomorrow = addDays(startOfDay(new Date()), 1);
+      const { error: updateError } = await supabase
+        .from('tee_times')
+        .update({ price: price })
+        .eq('course_id', activeCourse.id)
+        .gte('start_time', tomorrow.toISOString());
+
+      if (updateError) {
+        console.error('Update error:', updateError);
+        toast({
+          title: "Error updating tee times",
+          description: updateError.message,
+          variant: "destructive",
+        });
+        return;
+      }
 
       toast({
         title: "Success",
@@ -253,6 +288,17 @@ export default function TeeTimeSettings() {
               ))}
             </SelectContent>
           </Select>
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="price">Tee Time Price</Label>
+          <input
+            type="text"
+            id="price"
+            value={priceInput}
+            onChange={(e) => setPriceInput(e.target.value)}
+            className="w-full flex h-9 rounded-md border border-input bg-transparent px-3 py-1 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+          />
         </div>
 
         <Button onClick={handleSave}>Save Settings</Button>

@@ -79,6 +79,8 @@ export default function TeeTimesList() {
   const [selectedBookedTeeTime, setSelectedBookedTeeTime] = useState<TeeTime | null>(null)
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
   const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null)
+  const [nowPosition, setNowPosition] = useState<number | null>(null);
+  const [intervalMinutes, setIntervalMinutes] = useState<number | null>(null);
 
   // Update week and selected day when date changes
   useEffect(() => {
@@ -104,6 +106,13 @@ export default function TeeTimesList() {
         const fetchedTeeTimes = await getTeeTimes(startOfDay.toISOString(), activeCourse.id);
         if (!fetchedTeeTimes) throw new Error('No tee times returned');
         setTeeTimes(fetchedTeeTimes);
+
+        if (fetchedTeeTimes.length > 1) {
+          const firstTeeTime = new Date(fetchedTeeTimes[0].start_time);
+          const secondTeeTime = new Date(fetchedTeeTimes[1].start_time);
+          const interval = (secondTeeTime.getTime() - firstTeeTime.getTime()) / 60000;
+          setIntervalMinutes(interval);
+        }
       } catch (error) {
         console.error('Error fetching tee times:', error);
       } finally {
@@ -113,6 +122,36 @@ export default function TeeTimesList() {
 
     fetchTeeTimes();
   }, [date, activeCourse]);
+
+  useEffect(() => {
+    if (intervalMinutes === null) return;
+
+    const updateNowPosition = () => {
+      if (!date || !teeTimes.length) {
+        setNowPosition(null);
+        return;
+      }
+
+      const now = new Date();
+      const firstTeeTime = new Date(teeTimes[0].start_time);
+      const lastTeeTime = new Date(teeTimes[teeTimes.length - 1].start_time);
+
+      if (now < firstTeeTime || now > lastTeeTime) {
+        setNowPosition(null);
+        return;
+      }
+
+      const minutesSinceFirstTeeTime = (now.getTime() - firstTeeTime.getTime()) / 60000;
+      const pixelsPerMinute = 49 / intervalMinutes;
+
+      setNowPosition(minutesSinceFirstTeeTime * pixelsPerMinute);
+    };
+
+    updateNowPosition();
+    const interval = setInterval(updateNowPosition, 60000); // Update every minute
+
+    return () => clearInterval(interval);
+  }, [date, teeTimes, intervalMinutes]);
 
   if (isLoading) {
     return (
@@ -315,69 +354,83 @@ export default function TeeTimesList() {
             No tee times available for this date.
           </div>
         ) : (
-          teeTimes.map((item) => (
-            <div key={item.id} className="flex items-center border-b px-6 py-2 border-gray-100">
-              <div className="w-20 pr-4 text-sm font-small text-right">
-                {format(new Date(item.start_time), 'h:mm a')}
+          <>
+            {nowPosition !== null && (
+              <div
+                className="absolute left-0 right-0 flex items-center"
+                style={{ top: `${nowPosition}px` }}
+              >
+                <span className="absolute left-8 bg-red-500 text-white px-2 py-1 rounded-md text-xs font-bold">
+                  Now
+                </span>
+                <div className="flex-1 ml-8 h-0.5 bg-red-500"></div>
               </div>
-              <div className="w-20 pr-4 text-sm font-small text-gray-600 text-right">
-                ${item.price}
-              </div>
-              <div className="flex flex-1 space-x-2">
-                {renderSpots(item.available_spots, item.booked_spots).map((isBooked, idx) => {
-                  const bookingIndex = Math.floor(idx / (item.bookings[0]?.guests + 1 || 1));
-                  const booking = item.bookings[bookingIndex];
-                  const isGuest = booking ? idx % (booking.guests + 1) !== 0 : false;
-                  const playerName = booking && booking.user ? booking.user.name : "Player name";
-                  const rawHandicap = booking && booking.user ? booking.user.handicap : 0.0;
-                  const playerHandicap = rawHandicap < 0 ? `+${Math.abs(rawHandicap)}` : rawHandicap.toString();
+            )}
 
-                  return (
-                    <div
-                      key={idx}
-                      className={`flex items-center ${
-                        isBooked ? "justify-start" : "justify-center"
-                      } flex-1 h-8 rounded-md ${
-                        isBooked
-                          ? isGuest ? "bg-gray-600 text-white" : "bg-gray-900 text-white"
-                          : "bg-gray-100 border border-gray-200"
-                      }`}
-                    >
-                      {isBooked ? (
-                        <Button
-                          variant="ghost"
-                          className="w-full h-full p-2 hover:bg-gray-700 hover:text-white flex justify-start"
-                          onClick={() => {
-                            if (booking) {
-                              handleDeleteBookingClick(item, booking);
-                            }
-                          }}
-                        >
-                          {booking?.has_cart ? <CarFront className="mr-0" size={16} /> : <Footprints className="mr-0" size={16} />}
-                          
-                          <span className="text-xs font-bold mr-2 w-4 text-center">
-                            {booking?.number_of_holes || 0}
-                          </span>
-                          <span className="text-sm font-medium">
-                            {isGuest ? `Guest (0)` : `${playerName} (${playerHandicap})`}
-                          </span>
+            {teeTimes.map((item) => (
+              <div key={item.id} className="flex items-center border-b px-6 py-2 border-gray-100">
+                <div className="w-20 pr-4 text-sm font-small text-right">
+                  {format(new Date(item.start_time), 'h:mm a')}
+                </div>
+                <div className="w-20 pr-4 text-sm font-small text-gray-600 text-right">
+                  ${item.price.toFixed(2)}
+                </div>
+                <div className="flex flex-1 space-x-2">
+                  {renderSpots(item.available_spots, item.booked_spots).map((isBooked, idx) => {
+                    const bookingIndex = Math.floor(idx / (item.bookings[0]?.guests + 1 || 1));
+                    const booking = item.bookings[bookingIndex];
+                    const isGuest = booking ? idx % (booking.guests + 1) !== 0 : false;
+                    const playerName = booking && booking.user ? booking.user.name : "Player name";
+                    const rawHandicap = booking && booking.user ? booking.user.handicap : 0.0;
+                    const playerHandicap = rawHandicap < 0 ? `+${Math.abs(rawHandicap)}` : rawHandicap.toString();
+
+                    return (
+                      <div
+                        key={idx}
+                        className={`flex items-center ${
+                          isBooked ? "justify-start" : "justify-center"
+                        } flex-1 h-8 rounded-md ${
+                          isBooked
+                            ? isGuest ? "bg-gray-600 text-white" : "bg-gray-900 text-white"
+                            : "bg-gray-100 border border-gray-200"
+                        }`}
+                      >
+                        {isBooked ? (
+                          <Button
+                            variant="ghost"
+                            className="w-full h-full p-2 hover:bg-gray-700 hover:text-white flex justify-start"
+                            onClick={() => {
+                              if (booking) {
+                                handleDeleteBookingClick(item, booking);
+                              }
+                            }}
+                          >
+                            {booking?.has_cart ? <CarFront className="mr-0" size={16} /> : <Footprints className="mr-0" size={16} />}
+                            
+                            <span className="text-xs font-bold mr-2 w-4 text-center">
+                              {booking?.number_of_holes || 0}
+                            </span>
+                            <span className="text-sm font-medium">
+                              {isGuest ? `Guest (0)` : `${playerName} (${playerHandicap})`}
+                            </span>
                   
-                        </Button>
-                      ) : (
-                        <Button
-                          variant="ghost"
-                          className="w-full h-full p-0 hover:bg-gray-200"
-                          onClick={() => handleBookingClick(item)}
-                        >
-                          <PlusCircle className="text-gray-500" size={16} />
-                        </Button>
-                      )}
-                    </div>
-                  );
-                })}
+                          </Button>
+                        ) : (
+                          <Button
+                            variant="ghost"
+                            className="w-full h-full p-0 hover:bg-gray-200"
+                            onClick={() => handleBookingClick(item)}
+                          >
+                            <PlusCircle className="text-gray-500" size={16} />
+                          </Button>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
               </div>
-            </div>
-          ))
+            ))}
+          </>
         )}
 
         {selectedTeeTime && (

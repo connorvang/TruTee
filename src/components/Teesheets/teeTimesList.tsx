@@ -392,7 +392,7 @@ export default function TeeTimesList() {
                           isBooked ? "justify-start" : "justify-center"
                         } flex-1 h-8 rounded-md ${
                           isBooked
-                            ? isGuest ? "bg-gray-600 text-white" : "bg-gray-900 text-white"
+                            ? isGuest ? "bg-gray-500 text-white" : "bg-gray-900 text-white"
                             : "bg-gray-100 border border-gray-200"
                         }`}
                       >

@@ -4,9 +4,9 @@ import { useState, useEffect, useCallback } from 'react'
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
 import { useRouter } from 'next/navigation'
 import { useCourse } from '@/contexts/CourseContext'
-import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
 import { useToast } from '@/hooks/use-toast'
 import { addDays, startOfDay } from 'date-fns'
 
@@ -220,88 +220,117 @@ export default function TeeTimeSettings() {
   };
 
   return (
-    <div className="space-y-6 max-w-2xl mx-auto">
-      <div className="font-bold text-2xl">Settings</div>
-        <div className="space-y-2">
-          <Label htmlFor="interval">Tee Time Interval</Label>
-          <Select
-            value={settings.interval_minutes.toString()}
-            onValueChange={(value) => 
-              setSettings(s => ({ ...s, interval_minutes: parseInt(value) }))
-            }
-          >
-            <SelectTrigger>
-              <SelectValue placeholder="Select interval" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="10">10 minutes</SelectItem>
-              <SelectItem value="12">12 minutes</SelectItem>
-              <SelectItem value="15">15 minutes</SelectItem>
-            </SelectContent>
-          </Select>
+      <div className="max-w-3xl mx-auto bg-gray-50 rounded-xl">
+        <div className="p-6">
+          <div className="text-lg font-semibold">Configure tee times</div>
+          <div className="text-gray-600 text-sm">Adjust the basic settings for your tee times.</div>
         </div>
-
-        <div className="grid gap-4 md:grid-cols-2">
-          <div className="space-y-2">
-            <Label htmlFor="firstTime">First Tee Time</Label>
-            <input
-              type="time"
-              id="firstTime"
-              value={settings.first_tee_time}
-              onChange={(e) => 
-                setSettings(s => ({ ...s, first_tee_time: e.target.value }))
-              }
-              className="w-full flex h-9 rounded-md border border-input bg-transparent px-3 py-1 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-            />
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="lastTime">Last Tee Time</Label>
-            <input
-              type="time"
-              id="lastTime"
-              value={settings.last_tee_time}
-              onChange={(e) => 
-                setSettings(s => ({ ...s, last_tee_time: e.target.value }))
-              }
-              className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
-            />
-          </div>
+        <div className="p-1">
+          <ul className="bg-white shadow-md rounded-lg">
+            <li className="p-5 border-b border-gray-100">
+              <div className="flex items-start justify-between gap-16">
+                <div className="flex-1">
+                  <div className="font-medium text-md">Tee time interval</div>
+                  <div className="text-gray-600 text-sm">Choose the spacing between tee times that should be used for your course.</div>
+                </div>
+                <div className="flex-1">
+                  <Select
+                    value={settings.interval_minutes.toString()}
+                    onValueChange={(value) => 
+                      setSettings(s => ({ ...s, interval_minutes: parseInt(value) }))
+                    }
+                  >
+                    <SelectTrigger className="w-32">
+                      <SelectValue placeholder="Select interval" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="10">10 minutes</SelectItem>
+                      <SelectItem value="12">12 minutes</SelectItem>
+                      <SelectItem value="15">15 minutes</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            </li>
+            <li className="p-5 border-b border-gray-100">
+              <div className="flex items-start justify-between gap-16">
+                <div className="flex-1">
+                  <div className="font-medium text-md">Timeframe</div>
+                  <div className="text-gray-600 text-sm">Choose when the first and last tee times are available for players to book.</div>
+                </div>
+                <div className="flex flex-1 gap-4">
+                  <Input
+                    type="time"
+                    id="firstTime"
+                    value={settings.first_tee_time}
+                    onChange={(e) => 
+                      setSettings(s => ({ ...s, first_tee_time: e.target.value }))
+                    }
+                    className="w-auto"
+                  />
+                  <Input
+                    type="time"
+                    id="lastTime"
+                    value={settings.last_tee_time}
+                    onChange={(e) => 
+                      setSettings(s => ({ ...s, last_tee_time: e.target.value }))
+                    }
+                    className="w-auto"
+                  />
+                </div>
+              </div>
+            </li>
+            <li className="p-5 border-b border-gray-100">
+              <div className="flex items-start justify-between gap-16">
+                <div className="flex-1">
+                  <div className="font-medium text-md">Booking days in advance</div>
+                    <div className="text-gray-600 text-sm">Select how many days early players can book their tee times.</div>
+                </div>
+                <div className="flex-1">
+                  <Select
+                    value={settings.booking_days_in_advance?.toString() || '7'}
+                    onValueChange={(value) => 
+                      setSettings(s => ({ ...s, booking_days_in_advance: parseInt(value) }))
+                    }
+                  >
+                    <SelectTrigger className="w-24 border rounded-md p-2">
+                      <SelectValue placeholder="Select days" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {[1, 3, 5, 7, 14, 30].map((days) => (
+                        <SelectItem key={days} value={days.toString()}>
+                          {days} days
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            </li>
+            <li className="p-5 border-b border-gray-100">
+              <div className="flex items-start justify-between gap-16">
+                <div className="flex-1">
+                  <div className="font-medium text-md">Price</div>
+                  <div className="text-gray-600 text-sm">Enter the price it costs to play 18 holes with a cart included.</div>
+                </div>
+                <div className="flex-1">
+                <Input
+                  type="text"
+                  id="price"
+                  value={priceInput}
+                  onChange={(e) => setPriceInput(e.target.value)}
+                  className="w-40"
+                  />
+                </div>
+              </div>
+            </li>
+          </ul>
         </div>
-
-        <div className="space-y-2">
-          <Label htmlFor="daysInAdvance">Days in Advance</Label>
-          <Select
-            value={settings.booking_days_in_advance?.toString() || '7'}
-            onValueChange={(value) => 
-              setSettings(s => ({ ...s, booking_days_in_advance: parseInt(value) }))
-            }
-          >
-            <SelectTrigger>
-              <SelectValue placeholder="Select days" />
-            </SelectTrigger>
-            <SelectContent>
-              {[1, 3, 5, 7, 14, 30].map((days) => (
-                <SelectItem key={days} value={days.toString()}>
-                  {days} days
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+        <div className="p-6">
+          <Button onClick={handleSave} className="">
+            Save Settings
+          </Button>
         </div>
-
-        <div className="space-y-2">
-          <Label htmlFor="price">Tee Time Price</Label>
-          <input
-            type="text"
-            id="price"
-            value={priceInput}
-            onChange={(e) => setPriceInput(e.target.value)}
-            className="w-full flex h-9 rounded-md border border-input bg-transparent px-3 py-1 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-          />
-        </div>
-
-        <Button onClick={handleSave}>Save Settings</Button>
-    </div>
+      </div>
   )
 }

@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { useToast } from '@/hooks/use-toast'
 import { addDays, startOfDay } from 'date-fns'
+import { ArrowRight } from 'lucide-react'
 
 interface TeeTimeSettings {
   id?: string
@@ -277,7 +278,7 @@ export default function TeeTimeSettings() {
                   <div className="font-medium text-md">Timeframe</div>
                   <div className="text-gray-600 text-sm">Choose when the first and last tee times are available for players to book.</div>
                 </div>
-                <div className="flex flex-1 gap-4">
+                <div className="flex flex-1 items-center gap-2">
                   <Input
                     type="time"
                     id="firstTime"
@@ -287,6 +288,7 @@ export default function TeeTimeSettings() {
                     }
                     className="w-auto"
                   />
+                  <ArrowRight className="text-gray-500" size={16} />
                   <Input
                     type="time"
                     id="lastTime"

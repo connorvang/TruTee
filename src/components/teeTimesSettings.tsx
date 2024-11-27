@@ -35,6 +35,9 @@ export default function TeeTimeSettings() {
 
   const [priceInput, setPriceInput] = useState(settings.price.toFixed(2))
 
+  const [originalSettings, setOriginalSettings] = useState(settings);
+  const [isChanged, setIsChanged] = useState(false);
+
   useEffect(() => {
     async function loadSettings() {
       if (!activeCourse?.id) return;
@@ -46,20 +49,33 @@ export default function TeeTimeSettings() {
         .single();
 
       if (data) {
-        setSettings({
+        const loadedSettings = {
           ...data,
           first_tee_time: data.first_tee_time?.substring(0, 5) || '06:00',
           last_tee_time: data.last_tee_time?.substring(0, 5) || '18:00',
           interval_minutes: data.interval_minutes || 10,
           booking_days_in_advance: data.booking_days_in_advance || 7,
           price: data.price || 69.00,
-        });
+        };
+        setSettings(loadedSettings);
+        setOriginalSettings(loadedSettings);
         setPriceInput(data.price.toFixed(2));
       }
     }
 
     loadSettings();
   }, [activeCourse?.id, supabase]);
+
+  const handleChange = (newSettings: TeeTimeSettings) => {
+    setSettings(newSettings);
+    setIsChanged(JSON.stringify(newSettings) !== JSON.stringify(originalSettings));
+  };
+
+  const handleReset = () => {
+    setSettings(originalSettings);
+    setPriceInput(originalSettings.price.toFixed(2));
+    setIsChanged(false);
+  };
 
   const generateTeeTimes = useCallback(async () => {
     if (!activeCourse?.id) return;
@@ -217,6 +233,9 @@ export default function TeeTimeSettings() {
     }
 
     router.refresh();
+
+    setOriginalSettings(settings);
+    setIsChanged(false);
   };
 
   return (
@@ -237,7 +256,7 @@ export default function TeeTimeSettings() {
                   <Select
                     value={settings.interval_minutes.toString()}
                     onValueChange={(value) => 
-                      setSettings(s => ({ ...s, interval_minutes: parseInt(value) }))
+                      handleChange({ ...settings, interval_minutes: parseInt(value) })
                     }
                   >
                     <SelectTrigger className="w-32">
@@ -264,7 +283,7 @@ export default function TeeTimeSettings() {
                     id="firstTime"
                     value={settings.first_tee_time}
                     onChange={(e) => 
-                      setSettings(s => ({ ...s, first_tee_time: e.target.value }))
+                      handleChange({ ...settings, first_tee_time: e.target.value })
                     }
                     className="w-auto"
                   />
@@ -273,7 +292,7 @@ export default function TeeTimeSettings() {
                     id="lastTime"
                     value={settings.last_tee_time}
                     onChange={(e) => 
-                      setSettings(s => ({ ...s, last_tee_time: e.target.value }))
+                      handleChange({ ...settings, last_tee_time: e.target.value })
                     }
                     className="w-auto"
                   />
@@ -290,7 +309,7 @@ export default function TeeTimeSettings() {
                   <Select
                     value={settings.booking_days_in_advance?.toString() || '7'}
                     onValueChange={(value) => 
-                      setSettings(s => ({ ...s, booking_days_in_advance: parseInt(value) }))
+                      handleChange({ ...settings, booking_days_in_advance: parseInt(value) })
                     }
                   >
                     <SelectTrigger className="w-24 border rounded-md p-2">
@@ -318,7 +337,10 @@ export default function TeeTimeSettings() {
                   type="text"
                   id="price"
                   value={priceInput}
-                  onChange={(e) => setPriceInput(e.target.value)}
+                  onChange={(e) => {
+                    setPriceInput(e.target.value);
+                    handleChange({ ...settings, price: parseFloat(e.target.value) || 0 });
+                  }}
                   className="w-40"
                   />
                 </div>
@@ -326,11 +348,18 @@ export default function TeeTimeSettings() {
             </li>
           </ul>
         </div>
-        <div className="p-6">
-          <Button onClick={handleSave} className="">
-            Save Settings
-          </Button>
+        {isChanged && (
+        <div className="p-6 flex justify-end">
+            <>
+              <Button onClick={handleReset} variant="outline">
+                Reset Changes
+              </Button>
+              <Button onClick={handleSave} className="ml-2">
+                Save Settings
+              </Button>
+            </>
         </div>
+        )}
       </div>
   )
 }

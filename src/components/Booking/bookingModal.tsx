@@ -30,7 +30,7 @@ export function BookingModal({ isOpen, onClose, teeTime, onBookingComplete }: Bo
   const handleBooking = async () => {
     try {
       setIsLoading(true)
-      const TEMP_GOLFER_ID = 'f342ec32-e010-4eb8-9d13-d8a4429d5d2b'
+      const TEMP_GOLFER_ID = '6c7f0404-c152-48a4-9a53-3997b113aace'
       const guests = numberOfSpots - 1
 
       // Insert booking with golfer and guests

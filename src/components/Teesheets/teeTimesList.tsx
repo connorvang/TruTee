@@ -382,7 +382,7 @@ export default function TeeTimesList() {
                     const booking = item.bookings[bookingIndex];
                     const isGuest = booking ? idx % (booking.guests + 1) !== 0 : false;
                     const playerName = booking && booking.user ? booking.user.first_name + " " + booking.user.last_name : "Player name";
-                    const rawHandicap = booking && booking.user ? booking.user.handicap : 0.0;
+                    const rawHandicap = booking && booking.user && booking.user.handicap !== null ? booking.user.handicap : 0;
                     const playerHandicap = rawHandicap < 0 ? `+${Math.abs(rawHandicap)}` : rawHandicap.toString();
 
                     return (

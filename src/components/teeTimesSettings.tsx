@@ -23,7 +23,7 @@ export default function TeeTimeSettings() {
   const router = useRouter()
   const supabase = createClientComponentClient()
   const { toast } = useToast()
-  const activeOrganization = 'b4741620-74bc-4364-95c4-3b00be85e7f6'
+  const activeOrganization = '0db92fb0-2a02-4a0c-8c68-6c5fb22b2e0b'
 
   const [settings, setSettings] = useState<TeeTimeSettings>({
     interval_minutes: 10,

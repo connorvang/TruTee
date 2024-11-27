@@ -26,7 +26,7 @@ async function getTeeTimes(date: string) {
         )
       )
     `)
-    .eq('organization_id', 'b4741620-74bc-4364-95c4-3b00be85e7f6')
+    .eq('organization_id', '0db92fb0-2a02-4a0c-8c68-6c5fb22b2e0b')
     .gte('start_time', start.toISOString())
     .lte('start_time', end.toISOString())
     .order('start_time', { ascending: true })

@@ -15,7 +15,6 @@ import { Calendar } from "@/components/ui/calendar"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { cn } from "@/lib/utils"
 import { getTeeTimes } from './teeTimesList.server'
-import { useCourse } from '@/contexts/CourseContext'
 import WeatherInfo from '../getWeather';
 
 
@@ -28,13 +27,14 @@ const getWeekNumber = (date: Date) => {
 
 interface Booking {
   id: string;
-  golfer_id: string;
+  user_id: string;
   number_of_holes: number;
   has_cart: boolean;
   guests: number;
   user: {
     handicap: number;
-    name: string;
+    first_name: string;
+    last_name: string;
   }
 }
 
@@ -71,7 +71,8 @@ export default function TeeTimesList() {
   const [currentYear, setCurrentYear] = useState(2024);
   const [date, setDate] = useState<Date | undefined>(new Date());
   const [selectedDay, setSelectedDay] = useState<string>("");
-  const {activeCourse, isLoading } = useCourse()
+  const activeOrganization = 'b4741620-74bc-4364-95c4-3b00be85e7f6';
+  const isLoading = false;
   const [selectedTeeTime, setSelectedTeeTime] = useState<TeeTime | null>(null)
   const [isBookingModalOpen, setIsBookingModalOpen] = useState(false)
   const [teeTimes, setTeeTimes] = useState<TeeTime[]>([]);
@@ -95,7 +96,7 @@ export default function TeeTimesList() {
 
   // Fetch tee times when the date changes
   useEffect(() => {
-    if (!date || !activeCourse?.id) return;
+    if (!date || !activeOrganization) return;
 
     const fetchTeeTimes = async () => {
       setLoadingTeeTimes(true);
@@ -103,7 +104,7 @@ export default function TeeTimesList() {
         const startOfDay = new Date(date);
         startOfDay.setHours(0, 0, 0, 0);
 
-        const fetchedTeeTimes = await getTeeTimes(startOfDay.toISOString(), activeCourse.id);
+        const fetchedTeeTimes = await getTeeTimes(startOfDay.toISOString());
         if (!fetchedTeeTimes) throw new Error('No tee times returned');
         setTeeTimes(fetchedTeeTimes);
 
@@ -121,7 +122,7 @@ export default function TeeTimesList() {
     };
 
     fetchTeeTimes();
-  }, [date, activeCourse]);
+  }, [date, activeOrganization]);
 
   useEffect(() => {
     if (intervalMinutes === null) return;
@@ -161,7 +162,7 @@ export default function TeeTimesList() {
     )
   }
 
-  if (!activeCourse) {
+  if (!activeOrganization) {
     return (
       <div className="flex items-center justify-center py-8 text-gray-500">
         Unable to load course information. Please try again later.
@@ -380,7 +381,7 @@ export default function TeeTimesList() {
                     const bookingIndex = Math.floor(idx / (item.bookings[0]?.guests + 1 || 1));
                     const booking = item.bookings[bookingIndex];
                     const isGuest = booking ? idx % (booking.guests + 1) !== 0 : false;
-                    const playerName = booking && booking.user ? booking.user.name : "Player name";
+                    const playerName = booking && booking.user ? booking.user.first_name + " " + booking.user.last_name : "Player name";
                     const rawHandicap = booking && booking.user ? booking.user.handicap : 0.0;
                     const playerHandicap = rawHandicap < 0 ? `+${Math.abs(rawHandicap)}` : rawHandicap.toString();
 

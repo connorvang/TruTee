@@ -3,7 +3,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
 import { useRouter } from 'next/navigation'
-import { useCourse } from '@/contexts/CourseContext'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -24,8 +23,8 @@ export default function TeeTimeSettings() {
   const router = useRouter()
   const supabase = createClientComponentClient()
   const { toast } = useToast()
-  const { activeCourse } = useCourse()
-  
+  const activeOrganization = 'b4741620-74bc-4364-95c4-3b00be85e7f6'
+
   const [settings, setSettings] = useState<TeeTimeSettings>({
     interval_minutes: 10,
     first_tee_time: '06:00',
@@ -41,12 +40,12 @@ export default function TeeTimeSettings() {
 
   useEffect(() => {
     async function loadSettings() {
-      if (!activeCourse?.id) return;
+      if (!activeOrganization) return;
 
       const { data } = await supabase
         .from('tee_time_settings')
         .select('*')
-        .eq('course_id', activeCourse.id)
+        .eq('organization_id', activeOrganization)
         .single();
 
       if (data) {
@@ -65,7 +64,7 @@ export default function TeeTimeSettings() {
     }
 
     loadSettings();
-  }, [activeCourse?.id, supabase]);
+  }, [activeOrganization, supabase]);
 
   const handleChange = (newSettings: TeeTimeSettings) => {
     setSettings(newSettings);
@@ -79,7 +78,7 @@ export default function TeeTimeSettings() {
   };
 
   const generateTeeTimes = useCallback(async () => {
-    if (!activeCourse?.id) return;
+    if (!activeOrganization) return;
     
     const daysToGenerate = settings.booking_days_in_advance;
     const startDate = addDays(startOfDay(new Date()), 1);
@@ -96,7 +95,7 @@ export default function TeeTimeSettings() {
       // Generate times for this day
       for (let time = startTime; time <= endTime; time.setMinutes(time.getMinutes() + settings.interval_minutes)) {
         teeTimesToInsert.push({
-          course_id: activeCourse.id,
+          organization_id: activeOrganization,
           start_time: new Date(time).toISOString(),
           available_spots: 4,
           booked_spots: 0,
@@ -112,7 +111,7 @@ export default function TeeTimeSettings() {
     const { error: deleteError } = await supabase
       .from('tee_times')
       .delete()
-      .eq('course_id', activeCourse.id)
+      .eq('organization_id', activeOrganization)
       .gte('start_time', tomorrow.toISOString());
 
     if (deleteError) {
@@ -130,10 +129,10 @@ export default function TeeTimeSettings() {
         throw new Error('Failed to insert tee times');
       }
     }
-  }, [activeCourse?.id, settings, supabase]);
+  }, [activeOrganization, settings, supabase]);
 
   const handleSave = async () => {
-    if (!activeCourse?.id) {
+    if (!activeOrganization) {
       toast({
         title: "Error saving settings",
         description: "No active course selected",
@@ -170,7 +169,7 @@ export default function TeeTimeSettings() {
       const { error, data } = await supabase
         .from('tee_time_settings')
         .update(settingsToSave)
-        .eq('course_id', activeCourse.id)
+        .eq('organization_id', activeOrganization)
         .select();
 
       if (error) {
@@ -205,7 +204,7 @@ export default function TeeTimeSettings() {
       const { error: updateError } = await supabase
         .from('tee_times')
         .update({ price: price })
-        .eq('course_id', activeCourse.id)
+        .eq('organization_id', activeOrganization)
         .gte('start_time', tomorrow.toISOString());
 
       if (updateError) {

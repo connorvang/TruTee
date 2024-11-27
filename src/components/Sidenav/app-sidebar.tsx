@@ -5,7 +5,6 @@ import { usePathname } from "next/navigation"
 
 import { NavMain } from "@/components/Sidenav/nav-main"
 import { NavProjects } from "@/components/Sidenav/nav-projects"
-import { NavUser } from "@/components/Sidenav/nav-user"
 import { TeamSwitcher } from "@/components/Sidenav/team-switcher"
 import {
   Sidebar,
@@ -15,6 +14,7 @@ import {
   SidebarRail,
 } from "@/components/ui/sidebar"
 import { sidebarConfig } from "@/config/sidebar-nav"
+import { UserButton } from "@clerk/nextjs"
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const pathname = usePathname()
@@ -41,7 +41,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         <NavProjects projects={activeProjects} />
       </SidebarContent>
       <SidebarFooter>
-        <NavUser user={sidebarConfig.user} />
+        <UserButton />
       </SidebarFooter>
       <SidebarRail />
     </Sidebar>

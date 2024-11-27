@@ -2,7 +2,6 @@
 
 import * as React from "react"
 import { ChevronsUpDown, LandPlot, Plus } from "lucide-react"
-import { useCourse } from '@/contexts/CourseContext'
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
 
 import {
@@ -20,7 +19,7 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar"
 
-interface GolfCourse {
+interface Organization {
   id: string
   name: string
   location: string
@@ -28,31 +27,35 @@ interface GolfCourse {
 
 export function TeamSwitcher() {
   const { isMobile } = useSidebar()
-  const { activeCourse, setActiveCourse } = useCourse()
-  const [courses, setCourses] = React.useState<GolfCourse[]>([])
+  const [activeOrganization, setActiveOrganization] = React.useState<Organization>({
+    id: "1",
+    name: "Hardcoded Organization",
+    location: "Hardcoded Location"
+  })
+  const [organizations, setOrganizations] = React.useState<Organization[]>([])
   const supabase = createClientComponentClient()
 
   // Fetch all golf courses
   React.useEffect(() => {
-    async function loadCourses() {
+    async function loadOrganizations() {
       const { data, error } = await supabase
-        .from('golf_courses')
+        .from('organizations')
         .select('id, name, location')
 
       if (error) {
-        console.error('Error loading courses:', error)
+        console.error('Error loading organizations:', error)
         return
       }
 
       if (data) {
-        setCourses(data)
+        setOrganizations(data)
       }
     }
 
-    loadCourses()
-  }, [])
+    loadOrganizations()
+  }, [supabase])
 
-  if (!activeCourse) {
+  if (!activeOrganization) {
     return null
   }
 
@@ -70,9 +73,9 @@ export function TeamSwitcher() {
               </div>
               <div className="grid flex-1 text-left text-sm leading-tight">
                 <span className="truncate font-semibold">
-                  {activeCourse.name}
+                  {activeOrganization.name}
                 </span>
-                <span className="truncate text-xs">{activeCourse.location}</span>
+                <span className="truncate text-xs">{activeOrganization.location}</span>
               </div>
               <ChevronsUpDown className="ml-auto" />
             </SidebarMenuButton>
@@ -86,18 +89,18 @@ export function TeamSwitcher() {
             <DropdownMenuLabel className="text-xs text-muted-foreground">
               Your Courses
             </DropdownMenuLabel>
-            {courses.map((course) => (
+            {organizations.map((organization) => (
               <DropdownMenuItem
-                key={course.id}
-                onClick={() => setActiveCourse(course)}
+                key={organization.id}
+                onClick={() => setActiveOrganization(organization)}
                 className="gap-2 p-2"
               >
                 <div className="flex size-6 items-center justify-center rounded-sm border">
                   <LandPlot size={16} />
                 </div>
                 <div className="flex flex-col">
-                  <span>{course.name}</span>
-                  <span className="text-xs text-muted-foreground">{course.location}</span>
+                  <span>{organization.name}</span>
+                  <span className="text-xs text-muted-foreground">{organization.location}</span>
                 </div>
               </DropdownMenuItem>
             ))}

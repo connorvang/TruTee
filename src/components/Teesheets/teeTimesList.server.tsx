@@ -1,6 +1,6 @@
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
 
-async function getTeeTimes(date: string, courseId: string) {
+async function getTeeTimes(date: string) {
   const supabase = createClientComponentClient()
   
   const start = new Date(date)
@@ -15,17 +15,18 @@ async function getTeeTimes(date: string, courseId: string) {
       *,
       bookings (
         id,
-        golfer_id,
+        user_id,
         guests,
         number_of_holes,
         has_cart,
         user:users (
           handicap,
-          name
+          first_name,
+          last_name
         )
       )
     `)
-    .eq('course_id', courseId)
+    .eq('organization_id', 'b4741620-74bc-4364-95c4-3b00be85e7f6')
     .gte('start_time', start.toISOString())
     .lte('start_time', end.toISOString())
     .order('start_time', { ascending: true })

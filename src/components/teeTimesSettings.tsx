@@ -327,7 +327,7 @@ export default function TeeTimeSettings() {
                 </div>
               </div>
             </li>
-            <li className="p-5 border-b border-gray-100">
+            <li className="p-5">
               <div className="flex items-start justify-between gap-16">
                 <div className="flex-1">
                   <div className="font-medium text-md">Price</div>

@@ -5,7 +5,6 @@ import { usePathname } from "next/navigation"
 
 import { NavMain } from "@/components/Sidenav/nav-main"
 import { NavProjects } from "@/components/Sidenav/nav-projects"
-import { TeamSwitcher } from "@/components/Sidenav/team-switcher"
 import {
   Sidebar,
   SidebarContent,
@@ -14,7 +13,7 @@ import {
   SidebarRail,
 } from "@/components/ui/sidebar"
 import { sidebarConfig } from "@/config/sidebar-nav"
-import { UserButton } from "@clerk/nextjs"
+import { OrganizationSwitcher, UserButton } from "@clerk/nextjs"
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const pathname = usePathname()
@@ -34,7 +33,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   return (
     <Sidebar collapsible="icon" {...props}>
       <SidebarHeader>
-        <TeamSwitcher />
+        <OrganizationSwitcher hidePersonal={true} />
       </SidebarHeader>
       <SidebarContent>
         <NavMain items={activeNavMain} />

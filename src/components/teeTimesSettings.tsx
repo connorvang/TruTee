@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
+import { useOrganization } from '@clerk/nextjs'
 import { useRouter } from 'next/navigation'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Button } from "@/components/ui/button"
@@ -23,7 +24,9 @@ export default function TeeTimeSettings() {
   const router = useRouter()
   const supabase = createClientComponentClient()
   const { toast } = useToast()
-  const activeOrganization = '0db92fb0-2a02-4a0c-8c68-6c5fb22b2e0b'
+
+  const { organization } = useOrganization()
+  const activeOrganization = organization?.id
 
   const [settings, setSettings] = useState<TeeTimeSettings>({
     interval_minutes: 10,
@@ -35,8 +38,6 @@ export default function TeeTimeSettings() {
 
   const [priceInput, setPriceInput] = useState(settings.price.toFixed(2))
 
-  const [originalSettings, setOriginalSettings] = useState(settings);
-  const [isChanged, setIsChanged] = useState(false);
 
   useEffect(() => {
     async function loadSettings() {
@@ -58,7 +59,6 @@ export default function TeeTimeSettings() {
           price: data.price || 69.00,
         };
         setSettings(loadedSettings);
-        setOriginalSettings(loadedSettings);
         setPriceInput(data.price.toFixed(2));
       }
     }
@@ -68,13 +68,6 @@ export default function TeeTimeSettings() {
 
   const handleChange = (newSettings: TeeTimeSettings) => {
     setSettings(newSettings);
-    setIsChanged(JSON.stringify(newSettings) !== JSON.stringify(originalSettings));
-  };
-
-  const handleReset = () => {
-    setSettings(originalSettings);
-    setPriceInput(originalSettings.price.toFixed(2));
-    setIsChanged(false);
   };
 
   const generateTeeTimes = useCallback(async () => {
@@ -233,9 +226,6 @@ export default function TeeTimeSettings() {
     }
 
     router.refresh();
-
-    setOriginalSettings(settings);
-    setIsChanged(false);
   };
 
   return (
@@ -349,18 +339,11 @@ export default function TeeTimeSettings() {
             </li>
           </ul>
         </div>
-        {isChanged && (
         <div className="p-6 flex justify-end">
-            <>
-              <Button onClick={handleReset} variant="outline">
-                Reset Changes
-              </Button>
               <Button onClick={handleSave} className="ml-2">
                 Save Settings
               </Button>
-            </>
         </div>
-        )}
       </div>
   )
 }

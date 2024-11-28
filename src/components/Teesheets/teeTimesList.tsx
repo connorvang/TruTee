@@ -14,7 +14,7 @@ import { Breadcrumb, BreadcrumbItem, BreadcrumbList, BreadcrumbPage, BreadcrumbS
 import { Calendar } from "@/components/ui/calendar"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { cn } from "@/lib/utils"
-import { getTeeTimes } from './teeTimesList.server'
+import { useTeeTimes } from '@/hooks/useTeeTimes'
 import WeatherInfo from '../getWeather';
 
 
@@ -71,17 +71,26 @@ export default function TeeTimesList() {
   const [currentYear, setCurrentYear] = useState(2024);
   const [date, setDate] = useState<Date | undefined>(new Date());
   const [selectedDay, setSelectedDay] = useState<string>("");
-  const activeOrganization = 'b4741620-74bc-4364-95c4-3b00be85e7f6';
   const isLoading = false;
   const [selectedTeeTime, setSelectedTeeTime] = useState<TeeTime | null>(null)
   const [isBookingModalOpen, setIsBookingModalOpen] = useState(false)
-  const [teeTimes, setTeeTimes] = useState<TeeTime[]>([]);
-  const [loadingTeeTimes, setLoadingTeeTimes] = useState<boolean>(true);
   const [selectedBookedTeeTime, setSelectedBookedTeeTime] = useState<TeeTime | null>(null)
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
   const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null)
   const [nowPosition, setNowPosition] = useState<number | null>(null);
-  const [intervalMinutes, setIntervalMinutes] = useState<number | null>(null);
+  const [intervalMinutes, setIntervalMinutes] = useState<number>(10);
+  const { teeTimes, loading: loadingTeeTimes } = useTeeTimes(date)
+
+  // Add this new useEffect to calculate the actual interval
+  useEffect(() => {
+    if (teeTimes.length < 2) return;
+    
+    const time1 = new Date(teeTimes[0].start_time);
+    const time2 = new Date(teeTimes[1].start_time);
+    const actualInterval = (time2.getTime() - time1.getTime()) / 60000; // Convert to minutes
+    
+    setIntervalMinutes(actualInterval);
+  }, [teeTimes]);
 
   // Update week and selected day when date changes
   useEffect(() => {
@@ -91,38 +100,6 @@ export default function TeeTimesList() {
       setSelectedDay(format(date, "EEE"));
     }
   }, [date]);
-
-
-
-  // Fetch tee times when the date changes
-  useEffect(() => {
-    if (!date || !activeOrganization) return;
-
-    const fetchTeeTimes = async () => {
-      setLoadingTeeTimes(true);
-      try {
-        const startOfDay = new Date(date);
-        startOfDay.setHours(0, 0, 0, 0);
-
-        const fetchedTeeTimes = await getTeeTimes(startOfDay.toISOString());
-        if (!fetchedTeeTimes) throw new Error('No tee times returned');
-        setTeeTimes(fetchedTeeTimes);
-
-        if (fetchedTeeTimes.length > 1) {
-          const firstTeeTime = new Date(fetchedTeeTimes[0].start_time);
-          const secondTeeTime = new Date(fetchedTeeTimes[1].start_time);
-          const interval = (secondTeeTime.getTime() - firstTeeTime.getTime()) / 60000;
-          setIntervalMinutes(interval);
-        }
-      } catch (error) {
-        console.error('Error fetching tee times:', error);
-      } finally {
-        setLoadingTeeTimes(false);
-      }
-    };
-
-    fetchTeeTimes();
-  }, [date, activeOrganization]);
 
   useEffect(() => {
     if (intervalMinutes === null) return;
@@ -161,15 +138,6 @@ export default function TeeTimesList() {
       </div>
     )
   }
-
-  if (!activeOrganization) {
-    return (
-      <div className="flex items-center justify-center py-8 text-gray-500">
-        Unable to load course information. Please try again later.
-      </div>
-    )
-  }
-
 
   const getWeekDates = (week: number, year: number) => {
     const firstDayOfYear = new Date(year, 0, 1);

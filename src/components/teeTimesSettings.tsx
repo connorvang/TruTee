@@ -198,6 +198,7 @@ export default function TeeTimeSettings() {
         });
       }
 
+      // Delete existing unbooked tee times
       const tomorrow = addDays(startOfDay(new Date()), 1);
       const { error: deleteError } = await supabase
         .from('tee_times')
@@ -216,6 +217,7 @@ export default function TeeTimeSettings() {
         return;
       }
 
+      // Update prices ONLY for unbooked tee times
       const { error: updateError } = await supabase
         .from('tee_times')
         .update({ 
@@ -223,7 +225,8 @@ export default function TeeTimeSettings() {
           updated_at: new Date().toISOString()
         })
         .eq('organization_id', activeOrganization)
-        .gte('start_time', tomorrow.toISOString());
+        .gte('start_time', tomorrow.toISOString())
+        .eq('booked_spots', 0); // Only update price for unbooked tee times
 
       if (updateError) {
         console.error('Update error:', updateError);
@@ -235,6 +238,7 @@ export default function TeeTimeSettings() {
         return;
       }
 
+      // Generate new tee times
       await generateTeeTimes();
 
       toast({

@@ -82,7 +82,8 @@ export async function POST(req: Request) {
     try {
       const supabase = createClientComponentClient()
       
-      const { error } = await supabase
+      // First insert: organization
+      const { error: orgError } = await supabase
         .from('organizations')
         .insert({
           id: evt.data.id,
@@ -91,40 +92,33 @@ export async function POST(req: Request) {
           created_at: new Date().toISOString()
         })
 
-      if (error) {
-        console.error('Supabase insert error:', error)
-      } else {
-        console.log('Successfully created organization in Supabase')
+      if (orgError) {
+        console.error('Supabase insert error:', orgError)
+        return new Response('Error creating organization', { status: 500 })
       }
-    } catch (err) {
-      console.error('Error creating organization in Supabase:', err)
-    }
-  }
 
-  // Handle organization.created event
-  if (evt.type === 'organization.created') {
-    try {
-      const supabase = createClientComponentClient()
-      
+      // Second insert: tee time settings
       const { error: settingsError } = await supabase
         .from('tee_time_settings')
         .insert({
           organization_id: evt.data.id,
           interval_minutes: 10,
-          first_tee_time: '06:00:00',  // timetz format HH:MM:SS
-          last_tee_time: '18:00:00',   // timetz format HH:MM:SS
+          first_tee_time: '06:00:00',
+          last_tee_time: '18:00:00',
           booking_days_in_advance: 7,
-          price: 0.00,
+          price: 99.99,
           created_at: new Date().toISOString()
         })
 
       if (settingsError) {
         console.error('Supabase tee time settings insert error:', settingsError)
-      } else {
-        console.log('Successfully created tee time settings')
+        return new Response('Error creating tee time settings', { status: 500 })
       }
+
+      console.log('Successfully created organization and tee time settings')
     } catch (err) {
-      console.error('Error creating tee time settings:', err)
+      console.error('Error in organization.created handler:', err)
+      return new Response('Internal server error', { status: 500 })
     }
   }
 

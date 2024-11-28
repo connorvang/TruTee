@@ -77,41 +77,25 @@ export default function TeeTimeSettings() {
     const startDate = addDays(startOfDay(new Date()), 1);
     const teeTimesToInsert = [];
 
-    // Generate for each day (starting from tomorrow)
     for (let day = 0; day < daysToGenerate; day++) {
       const currentDate = addDays(startDate, day);
       
-      // Convert time strings to Date objects for comparison
       const startTime = new Date(`${currentDate.toDateString()} ${settings.first_tee_time}`);
       const endTime = new Date(`${currentDate.toDateString()} ${settings.last_tee_time}`);
       
-      // Generate times for this day
       for (let time = startTime; time <= endTime; time.setMinutes(time.getMinutes() + settings.interval_minutes)) {
         teeTimesToInsert.push({
           organization_id: activeOrganization,
           start_time: new Date(time).toISOString(),
           available_spots: 4,
           booked_spots: 0,
-          price: 69.00,
+          price: parseFloat(priceInput),
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString()
         });
       }
     }
 
-    // Delete existing future tee times (from tomorrow onwards)
-    const tomorrow = addDays(startOfDay(new Date()), 1);
-    const { error: deleteError } = await supabase
-      .from('tee_times')
-      .delete()
-      .eq('organization_id', activeOrganization)
-      .gte('start_time', tomorrow.toISOString());
-
-    if (deleteError) {
-      throw new Error('Failed to delete existing tee times');
-    }
-
-    // Insert new tee times in batches
     for (let i = 0; i < teeTimesToInsert.length; i += 1000) {
       const batch = teeTimesToInsert.slice(i, i + 1000);
       const { error: insertError } = await supabase
@@ -122,7 +106,7 @@ export default function TeeTimeSettings() {
         throw new Error('Failed to insert tee times');
       }
     }
-  }, [activeOrganization, settings, supabase]);
+  }, [activeOrganization, settings, supabase, priceInput]);
 
   const handleSave = async () => {
     if (!activeOrganization) {
@@ -189,14 +173,30 @@ export default function TeeTimeSettings() {
         });
       }
 
-      // Generate tee times after saving settings
-      await generateTeeTimes();
-
-      // Update future tee times with the new price
       const tomorrow = addDays(startOfDay(new Date()), 1);
+      const { error: deleteError } = await supabase
+        .from('tee_times')
+        .delete()
+        .eq('organization_id', activeOrganization)
+        .gte('start_time', tomorrow.toISOString())
+        .eq('booked_spots', 0);
+
+      if (deleteError) {
+        console.error('Delete error:', deleteError);
+        toast({
+          title: "Error clearing existing tee times",
+          description: deleteError.message,
+          variant: "destructive",
+        });
+        return;
+      }
+
       const { error: updateError } = await supabase
         .from('tee_times')
-        .update({ price: price })
+        .update({ 
+          price: price,
+          updated_at: new Date().toISOString()
+        })
         .eq('organization_id', activeOrganization)
         .gte('start_time', tomorrow.toISOString());
 
@@ -210,9 +210,11 @@ export default function TeeTimeSettings() {
         return;
       }
 
+      await generateTeeTimes();
+
       toast({
         title: "Success",
-        description: "Settings saved and tee times generated successfully.",
+        description: "Settings saved and future tee times updated successfully.",
         variant: "default",
       });
 

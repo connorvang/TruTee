@@ -75,6 +75,25 @@ export default function TeeTimeSettings() {
     
     const daysToGenerate = settings.booking_days_in_advance;
     const startDate = addDays(startOfDay(new Date()), 1);
+    
+    // First, fetch existing booked tee times
+    const { data: existingTeeTimes, error: fetchError } = await supabase
+      .from('tee_times')
+      .select('start_time')
+      .eq('organization_id', activeOrganization)
+      .gte('start_time', startDate.toISOString())
+      .gt('booked_spots', 0);
+
+    if (fetchError) {
+      console.error('Error fetching existing tee times:', fetchError);
+      return;
+    }
+
+    // Create a Set of existing tee time strings for efficient lookup
+    const existingTeeTimeSet = new Set(
+      existingTeeTimes?.map(tt => new Date(tt.start_time).toISOString()) || []
+    );
+
     const teeTimesToInsert = [];
 
     for (let day = 0; day < daysToGenerate; day++) {
@@ -84,18 +103,24 @@ export default function TeeTimeSettings() {
       const endTime = new Date(`${currentDate.toDateString()} ${settings.last_tee_time}`);
       
       for (let time = startTime; time <= endTime; time.setMinutes(time.getMinutes() + settings.interval_minutes)) {
-        teeTimesToInsert.push({
-          organization_id: activeOrganization,
-          start_time: new Date(time).toISOString(),
-          available_spots: 4,
-          booked_spots: 0,
-          price: parseFloat(priceInput),
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
-        });
+        const timeString = new Date(time).toISOString();
+        
+        // Skip this time slot if it already exists
+        if (!existingTeeTimeSet.has(timeString)) {
+          teeTimesToInsert.push({
+            organization_id: activeOrganization,
+            start_time: timeString,
+            available_spots: 4,
+            booked_spots: 0,
+            price: parseFloat(priceInput),
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+          });
+        }
       }
     }
 
+    // Insert in batches of 1000
     for (let i = 0; i < teeTimesToInsert.length; i += 1000) {
       const batch = teeTimesToInsert.slice(i, i + 1000);
       const { error: insertError } = await supabase

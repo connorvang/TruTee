@@ -107,3 +107,13 @@ body {
     @apply bg-background text-foreground;
   }
 }
+
+
+.cl-organizationSwitcherTrigger {
+  padding: 4px 4px;
+}
+
+.cl-organizationPreviewAvatarBox {
+  height: 24px;
+  width: 24px;
+}

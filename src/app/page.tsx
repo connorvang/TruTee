@@ -25,7 +25,7 @@ export default function Page() {
     <SidebarProvider>
       <AppSidebar />
       <SidebarInset>
-        <header className="flex h-16 shrink-0 gap-2 border-b border-gray-100 transition-[width,height] ease-linear group-has-[[data-collapsible=icon]]/sidebar-wrapper:h-12">
+        <header className="flex h-12 shrink-0 gap-2 border-b border-gray-100 transition-[width,height] ease-linear group-has-[[data-collapsible=icon]]/sidebar-wrapper:h-12">
           <div className="flex flex-1 items-center gap-2 px-6">
             <SidebarTrigger className="-ml-1" />
             <Separator orientation="vertical" className="mr-2 h-4" />
@@ -40,8 +40,8 @@ export default function Page() {
             </Breadcrumb>
           </div>
           <div className="flex items-center gap-2 px-6">
-            <Button variant="outline" className="h-8">Export</Button>
-            <Button className="h-8"><PlusIcon className="w-4 h-4" />Add</Button>
+            <Button variant="outline" size="sm">Export</Button>
+            <Button size="sm"><PlusIcon className="w-4 h-4" />Add</Button>
           </div>
         </header>
         <div className="flex flex-1 flex-col pt-0">

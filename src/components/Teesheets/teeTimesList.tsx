@@ -329,10 +329,10 @@ export default function TeeTimesList() {
                 className="absolute left-0 right-0 flex items-center"
                 style={{ top: `${nowPosition}px` }}
               >
-                <span className="absolute left-8 bg-red-500 text-white px-2 py-1 rounded-md text-xs font-bold">
+                <span className="absolute left-8 bg-red-500 border border-red-600 text-white px-2 py-0.5 rounded-md text-xs font-bold">
                   Now
                 </span>
-                <div className="flex-1 ml-8 h-0.5 bg-red-500"></div>
+                <div className="flex-1 ml-8 h-[1px] bg-red-500"></div>
               </div>
             )}
 
@@ -344,7 +344,7 @@ export default function TeeTimesList() {
                 <div className="w-20 pr-4 text-sm font-small text-gray-600 text-right">
                   ${item.price.toFixed(2)}
                 </div>
-                <div className="flex flex-1 space-x-2">
+                <div className="grid grid-cols-4 gap-2 flex-1">
                   {renderSpots(item.available_spots, item.booked_spots).map((isBooked, idx) => {
                     const bookingIndex = Math.floor(idx / (item.bookings[0]?.guests + 1 || 1));
                     const booking = item.bookings[bookingIndex];
@@ -356,42 +356,38 @@ export default function TeeTimesList() {
                     return (
                       <div
                         key={idx}
-                        className={`flex items-center ${
-                          isBooked ? "justify-start" : "justify-center"
-                        } flex-1 h-8 rounded-md ${
+                        className={`h-8 rounded-md overflow-hidden ${
                           isBooked
-                            ? isGuest ? "bg-gray-500 text-white" : "bg-gray-900 text-white"
+                            ? isGuest ? "bg-gray-500" : "bg-gray-900"
                             : "bg-gray-100 border border-gray-200"
                         }`}
                       >
                         {isBooked ? (
-                          <Button
-                            variant="ghost"
-                            className="w-full h-full p-2 hover:bg-gray-700 hover:text-white flex justify-start"
+                          <button
+                            className="w-full h-full px-2 text-white hover:bg-gray-700 flex items-center content-start min-w-0"
                             onClick={() => {
                               if (booking) {
                                 handleDeleteBookingClick(item, booking);
                               }
                             }}
                           >
-                            {booking?.has_cart ? <CarFront className="mr-0" size={16} /> : <Footprints className="mr-0" size={16} />}
-                            
-                            <span className="text-xs font-bold mr-2 w-4 text-center">
-                              {booking?.number_of_holes || 0}
-                            </span>
-                            <span className="text-sm font-medium">
+                            <div className="flex items-center shrink-0 gap-1">
+                              {booking?.has_cart ? <CarFront size={16} /> : <Footprints size={16} />}
+                              <span className="text-xs font-bold w-4">
+                                {booking?.number_of_holes || 0}
+                              </span>
+                            </div>
+                            <span className="text-sm text-left font-medium truncate ml-2 flex-1">
                               {isGuest ? `Guest (0)` : `${playerName} (${playerHandicap})`}
                             </span>
-                  
-                          </Button>
+                          </button>
                         ) : (
-                          <Button
-                            variant="ghost"
-                            className="w-full h-full p-0 hover:bg-gray-200"
+                          <button
+                            className="w-full h-full flex items-center justify-center hover:bg-gray-200"
                             onClick={() => handleBookingClick(item)}
                           >
                             <PlusCircle className="text-gray-500" size={16} />
-                          </Button>
+                          </button>
                         )}
                       </div>
                     );

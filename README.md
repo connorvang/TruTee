@@ -1,31 +1,36 @@
-This is a [Next.js](https://nextjs.org) 
-
 ## Getting Started
 
 First, run the development server:
 
 ```bash
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
 Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
 
-For webhook testing or external links using NGROK also run this command in a new terminal: ngrok http --url=ideal-halibut-truly.ngrok-free.app 3000
+## Testing User and Org creation
+
+The app uses Clerk users and organizaitions for authentication and then uses webhooks to link those to Supabase.
+
+You will need to install NGROK (this is a temporary URL) for testing.
+
+```bash
+ngrok http --url=ideal-halibut-truly.ngrok-free.app 3000
+```
+
+You can now visit the build at https://ideal-hlibut-truly.ngrok-free.app
 
 ## Learn More
 
 To learn more about Next.js, take a look at the following resources:
 
+- [Clerk Documentation](https://clerk.com/docs) - learn about Clerk.
+- [Supabase Documentation](https://supabase.com/docs) - learn about Supabase.
 - [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
 - [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+
 
 ## Deploy on Vercel
 

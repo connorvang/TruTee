@@ -25,7 +25,7 @@ export const sidebarConfig = {
     },
     {
       title: "Events",
-      url: "/events",
+      url: "#",
       icon: CalendarIcon,
     },
     {

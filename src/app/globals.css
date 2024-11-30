@@ -124,6 +124,10 @@ body {
   height: 15rem;
 }
 
+.h-72 {
+  height: 18rem;
+}
+
 .cl-organizationSwitcherTrigger {
   padding: 4px 4px;
 }

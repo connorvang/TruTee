@@ -110,6 +110,13 @@ export default function TeeTimesList() {
       }
 
       const now = new Date();
+      const isToday = now.toDateString() === date.toDateString();
+
+      if (!isToday) {
+        setNowPosition(null);
+        return;
+      }
+
       const firstTeeTime = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0); // 12:00 AM
       const lastTeeTime = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 30, 0); // 11:30 PM
 
@@ -206,6 +213,8 @@ export default function TeeTimesList() {
     setIsDeleteDialogOpen(true);
   };
 
+  const simulatorCount = Object.keys(teeTimes).length;
+
   return (
     <div className="p-0">
       <div className="flex items-center justify-between px-6 py-2 bg-background border-b border-gray-100">
@@ -288,12 +297,19 @@ export default function TeeTimesList() {
             </TabsTrigger>
           ))}
         </TabsList>
-        <div className="flex pl-6 h-10 baysHeader border-y border-gray-100">
-          <div className="w-20 pr-4 text-sm font-small text-right"></div>
-          <div className="flex flex-1 text-sm font-medium text-gray-900 justify-center items-center">Bay 1</div>
-          <div className="flex flex-1 text-sm font-medium text-gray-900 justify-center items-center">Bay 2</div>
-          
-        </div>
+        {simulatorCount > 0 && (
+          <div className="flex pl-6 h-10 baysHeader border-y border-gray-100">
+            <div className="w-20 pr-4 text-sm font-small text-right"></div>
+            {Object.keys(teeTimes).map((simulator, index) => (
+              <div
+                key={simulator}
+                className="flex flex-1 text-sm font-medium text-gray-900 justify-center items-center"
+              >
+                {`Bay ${index + 1}`}
+              </div>
+            ))}
+          </div>
+        )}
 
         <div className="relative timeSlots">
           {loadingTeeTimes ? (

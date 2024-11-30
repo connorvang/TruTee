@@ -1,6 +1,6 @@
 "use client"
 
-import { ChevronLeft, ChevronRight, PlusCircle, Users, ChevronDown, Circle } from 'lucide-react'
+import { ChevronLeft, ChevronRight, PlusCircle, Users, ChevronDown, Circle, CarFront, Footprints } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { format } from "date-fns";
 import { BookingModal } from '../Booking/simulatorBookingModal'
@@ -28,11 +28,7 @@ const getWeekNumber = (date: Date) => {
 interface Booking {
   id: string;
   user_id: string;
-  start_time: string;
-  end_time: string;
-  simulator: number;
-  guests: number;
-  user: {
+  users: {
     handicap: number;
     first_name: string;
     last_name: string;
@@ -44,10 +40,18 @@ interface TeeTime {
   start_time: string;
   end_time: string;
   price: number;
-  available_spots: number;
-  booked_spots: number;
-  bookings: Booking[];
   simulator: number;
+  tee_time_bookings: {
+    bookings: {
+      id: string;
+      user_id: string;
+      users: {
+        handicap: number;
+        first_name: string;
+        last_name: string;
+      }
+    }
+  }[];
 }
 
 // Skeleton component
@@ -67,7 +71,7 @@ const Skeleton = () => (
   </div>
 );
 
-// Update the grouping function to properly handle simulator assignments
+// Update the grouping function
 const groupTeeTimesBySimulator = (teeTimes: TeeTime[], numberOfSimulators: number) => {
   const grouped = new Map<number, TeeTime[]>();
   
@@ -78,19 +82,22 @@ const groupTeeTimesBySimulator = (teeTimes: TeeTime[], numberOfSimulators: numbe
   
   // Group tee times by simulator number
   teeTimes.forEach(teeTime => {
-    // For each booking in the tee time, create a copy of the tee time with that booking
-    teeTime.bookings.forEach(booking => {
-      const simulatorNumber = booking.simulator;
-      const simulatorTimes = grouped.get(simulatorNumber) || [];
-      const teeTimeCopy = {...teeTime, simulator: simulatorNumber};
-      simulatorTimes.push(teeTimeCopy);
-      grouped.set(simulatorNumber, simulatorTimes.sort((a, b) => 
-        new Date(a.start_time).getTime() - new Date(b.start_time).getTime()
-      ));
-    });
+    // Check if tee_time_bookings exists and is an array
+    if (teeTime.tee_time_bookings && Array.isArray(teeTime.tee_time_bookings)) {
+      // For each booking in the tee time, create a copy of the tee time with that booking
+      teeTime.tee_time_bookings.forEach(booking => {
+        const simulatorNumber = booking.simulator;
+        const simulatorTimes = grouped.get(simulatorNumber) || [];
+        const teeTimeCopy = {...teeTime, simulator: simulatorNumber};
+        simulatorTimes.push(teeTimeCopy);
+        grouped.set(simulatorNumber, simulatorTimes.sort((a, b) => 
+          new Date(a.start_time).getTime() - new Date(b.start_time).getTime()
+        ));
+      });
+    }
     
     // If no bookings, use the tee time's simulator number
-    if (teeTime.bookings.length === 0) {
+    if (!teeTime.tee_time_bookings?.length) {
       const simulatorTimes = grouped.get(teeTime.simulator) || [];
       simulatorTimes.push(teeTime);
       grouped.set(teeTime.simulator, simulatorTimes);
@@ -416,7 +423,7 @@ export default function SimulatorTimesList() {
                     const matchingTeeTime = simulatorTeeTimes.find(t => 
                       t.start_time === timeSlot.start_time
                     );
-                    const booking = matchingTeeTime?.bookings.find(b => b.simulator === simulatorNumber);
+                    const booking = matchingTeeTime?.tee_time_bookings[0]?.bookings;
                     const isBooked = Boolean(booking);
 
                     // Check if the current time slot is within any booking's duration
@@ -434,8 +441,18 @@ export default function SimulatorTimesList() {
                                 className="w-full h-full px-2 text-white hover:bg-gray-700 flex items-center justify-between min-w-0"
                                 onClick={() => handleDeleteBookingClick(matchingTeeTime!, booking)}
                               >
+                                <div className="flex items-center shrink-0 gap-1">
+                                  {booking.has_cart ? <CarFront size={16} /> : <Footprints size={16} />}
+                                  <span className="text-xs font-bold w-4">
+                                    {booking.number_of_holes}
+                                  </span>
+                                </div>
                                 <span className="text-sm text-left font-medium truncate flex-1 pl-1">
-                                  {`${booking.user.first_name} ${booking.user.last_name} (${booking.user.handicap})`}
+                                  {`${booking.users.first_name} ${booking.users.last_name} (${
+                                    booking.users.handicap < 0 
+                                      ? `+${Math.abs(booking.users.handicap)}` 
+                                      : booking.users.handicap
+                                  })`}
                                 </span>
                               </button>
                             ) : (

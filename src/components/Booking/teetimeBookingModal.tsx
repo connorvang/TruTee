@@ -241,8 +241,12 @@ export function BookingModal({ isOpen, onClose, teeTime, onBookingComplete }: Bo
                 <SelectValue placeholder="Select players" />
               </SelectTrigger>
               <SelectContent>
-                {Array.from({ length: teeTime.available_spots }, (_, i) => i + 1).map((num) => (
-                  <SelectItem key={num} value={num.toString()}>
+                {[1, 2, 3, 4].map((num) => (
+                  <SelectItem 
+                    key={num} 
+                    value={num.toString()}
+                    disabled={num > teeTime.available_spots}
+                  >
                     {num === 1 
                       ? '1 Player (No guests)' 
                       : `${num} Players (${num - 1} guest${num - 1 === 1 ? '' : 's'})`}

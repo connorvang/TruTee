@@ -44,7 +44,6 @@ interface TeeTime {
   available_spots: number;
   booked_spots: number;
   tee_time_bookings: {
-    id: string;
     bookings: {
       id: string;
       guests: number;

@@ -17,15 +17,14 @@ interface TeeTime {
   number_of_holes: number
   simulator: number
   tee_time_bookings: {
-    bookings: any
-    booking: {
+    bookings: {
       id: string
       user_id: string
       guests: number
       number_of_holes: number
       has_cart: boolean
       simulator: number
-      user: {
+      users: {
         handicap: number
         first_name: string
         last_name: string

@@ -15,31 +15,18 @@ interface BookingModalProps {
   teeTime: {
     id: string
     start_time: string
-    end_time: string
     price: number
     available_spots: number
-    simulator: number
-    potentialTimeSlots: Array<{ start_time: string; end_time: string }>
+    end_time: string
   }
-  potentialSlots: {
-    id: string
-    start_time: string
-    end_time: string
-    price: number
-    available_spots: number
-    simulator: number
-    potentialTimeSlots: Array<{ start_time: string; end_time: string }>
-  }[]
   onBookingComplete: () => void
 }
 
-export function BookingModal({ isOpen, onClose, teeTime, potentialSlots, onBookingComplete }: BookingModalProps) {
-  console.log('Received potential slots:', potentialSlots);
-  console.log('TeeTime:', teeTime);
-  console.log('TeeTime Data:', teeTime);
-
+export function BookingModal({ isOpen, onClose, teeTime, onBookingComplete }: BookingModalProps) {
   const { user } = useUser()
-  const [duration, setDuration] = useState(30)
+  const [numberOfSpots, setNumberOfSpots] = useState(1)
+  const [numberOfHoles, setNumberOfHoles] = useState<9 | 18>(18)
+  const [hasCart, setHasCart] = useState("true")
   const [isLoading, setIsLoading] = useState(false)
   const supabase = createClientComponentClient()
   const { toast } = useToast()
@@ -75,7 +62,7 @@ export function BookingModal({ isOpen, onClose, teeTime, potentialSlots, onBooki
     if (!user) {
       toast({
         title: "Error",
-        description: "You must be logged in to book a simulator.",
+        description: "You must be logged in to book a tee time.",
         variant: "destructive",
       })
       return
@@ -108,30 +95,54 @@ export function BookingModal({ isOpen, onClose, teeTime, potentialSlots, onBooki
         throw new Error('No user selected')
       }
 
-      if (!potentialSlots || potentialSlots.length === 0) {
-        throw new Error('No potential time slots available')
+      const guests = Math.max(0, numberOfSpots - 1)
+
+      // First, create the booking
+      const { data: newBooking, error: bookingError } = await supabase
+        .from('bookings')
+        .insert({
+          user_id: bookingUserId,
+          number_of_holes: numberOfHoles,
+          has_cart: hasCart === "true",
+          guests: guests,
+        })
+        .select('id')
+        .single()
+
+      if (bookingError || !newBooking) {
+        throw new Error('Failed to create booking')
       }
 
-      const timeSlotsToBook = potentialSlots.slice(0, duration / 30)
+      // Then, create the join table entry
+      const { error: joinError } = await supabase
+        .from('tee_time_bookings')
+        .insert({
+          teetime_id: teeTime.id,
+          booking_id: newBooking.id,
+        })
 
-      for (const slot of timeSlotsToBook) {
-        const { error: bookingError } = await supabase
+      if (joinError) {
+        // If join table creation fails, we should clean up the booking
+        await supabase
           .from('bookings')
-          .insert({
-            teetime_id: teeTime.id,
-            user_id: bookingUserId,
-            booked_spots: 1,
-            start_time: slot.start_time,
-            end_time: slot.end_time,
-            simulator: teeTime.simulator,
-          })
-
-        if (bookingError) throw bookingError
+          .delete()
+          .eq('id', newBooking.id)
+        throw new Error('Failed to create tee time booking join')
       }
+
+      // Update available spots
+      const { error: updateError } = await supabase
+        .from('tee_times')
+        .update({
+          available_spots: teeTime.available_spots - numberOfSpots,
+        })
+        .eq('id', teeTime.id)
+
+      if (updateError) throw updateError
 
       toast({
         title: "Success!",
-        description: "Your simulator time has been booked.",
+        description: "Your tee time has been booked.",
         variant: "default",
         className: "bg-white dark:bg-gray-800",
       })
@@ -142,7 +153,7 @@ export function BookingModal({ isOpen, onClose, teeTime, potentialSlots, onBooki
       console.error('Booking error:', error)
       toast({
         title: "Error",
-        description: error instanceof Error ? error.message : "Failed to book simulator. Please try again.",
+        description: error instanceof Error ? error.message : "Failed to book tee time. Please try again.",
         variant: "destructive",
       })
     } finally {
@@ -154,7 +165,7 @@ export function BookingModal({ isOpen, onClose, teeTime, potentialSlots, onBooki
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="bg-white dark:bg-gray-900">
         <DialogHeader>
-          <DialogTitle>Book Simulator</DialogTitle>
+          <DialogTitle>Book Tee Time</DialogTitle>
           <DialogDescription>
             {format(new Date(teeTime.start_time), 'EEEE, MMMM d, yyyy h:mm a')}
           </DialogDescription>
@@ -221,29 +232,65 @@ export function BookingModal({ isOpen, onClose, teeTime, potentialSlots, onBooki
           )}
 
           <div className="space-y-2">
-            <Label>Duration</Label>
-            <Select
-              value={duration.toString()}
-              onValueChange={(value) => setDuration(parseInt(value))}
+            <Label>Players</Label>
+            <Select 
+              value={numberOfSpots.toString()} 
+              onValueChange={(value) => setNumberOfSpots(parseInt(value))}
             >
               <SelectTrigger>
-                <SelectValue placeholder="Select duration" />
+                <SelectValue placeholder="Select players" />
               </SelectTrigger>
               <SelectContent>
-                {Array.from({ length: 6 }, (_, index) => {
-                  const minutes = (index + 1) * 30;
-                  return (
-                    <SelectItem key={minutes} value={minutes.toString()}>
-                      {minutes / 60} hour{minutes > 30 ? 's' : ''}
-                    </SelectItem>
-                  );
-                })}
+                {[1, 2, 3, 4].map((num) => (
+                  <SelectItem 
+                    key={num} 
+                    value={num.toString()}
+                    disabled={num > teeTime.available_spots}
+                  >
+                    {num === 1 
+                      ? '1 Player (No guests)' 
+                      : `${num} Players (${num - 1} guest${num - 1 === 1 ? '' : 's'})`}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
+            <div className="text-sm text-muted-foreground">
+              {numberOfSpots > 1 
+                ? `Booking for 1 player + ${numberOfSpots - 1} guest${numberOfSpots - 1 === 1 ? '' : 's'}`
+                : 'Booking for 1 player'}
+            </div>
+          </div>
+
+          <div className="space-y-4">
+      <div className="space-y-2">
+        <Label>Holes</Label>
+        <Select value={numberOfHoles.toString()} onValueChange={(value) => setNumberOfHoles(parseInt(value) as 9 | 18)}>
+          <SelectTrigger>
+            <SelectValue placeholder="Select holes" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="9">9 Holes</SelectItem>
+            <SelectItem value="18">18 Holes</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+
+      <div className="space-y-2">
+        <Label>Cart</Label>
+        <Select value={hasCart} onValueChange={(value) => setHasCart(value as 'walking' | 'cart')}>
+          <SelectTrigger>
+            <SelectValue placeholder="Select type" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="false">Walking</SelectItem>
+            <SelectItem value="true">Cart</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
           </div>
           
           <div className="text-sm text-muted-foreground">
-            Total Price: ${((teeTime.price * duration) / 30).toFixed(2)}
+            Total Price: ${(teeTime.price * numberOfSpots).toFixed(2)}
           </div>
         </div>
 

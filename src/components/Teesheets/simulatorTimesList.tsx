@@ -288,10 +288,10 @@ export default function TeeTimesList() {
             </TabsTrigger>
           ))}
         </TabsList>
-        <div className="flex pl-6 h-10 baysHeader">
+        <div className="flex pl-6 h-10 baysHeader border-y border-gray-100">
           <div className="w-20 pr-4 text-sm font-small text-right"></div>
-          <div className="flex flex-1 text-sm font-medium text-gray-800 justify-center items-center">Bay 1</div>
-          <div className="flex flex-1 text-sm font-medium text-gray-800 justify-center items-center">Bay 2</div>
+          <div className="flex flex-1 text-sm font-medium text-gray-900 justify-center items-center">Bay 1</div>
+          <div className="flex flex-1 text-sm font-medium text-gray-900 justify-center items-center">Bay 2</div>
           
         </div>
 
@@ -323,82 +323,94 @@ export default function TeeTimesList() {
             </>
           )}
 
-          <div className="flex flex-row">
-            <div className="flex flex-col w-26">
-              {Array.from({ length: 48 }, (_, index) => {
-                const hour = Math.floor(index / 2);
-                const minutes = index % 2 === 0 ? '00' : '30';
-                return (
-                  <div key={index} className="h-12 border-b w-26 pl-6 pr-4 border-gray-100 flex items-center justify-end text-sm font-small text-right">
-                    {`${hour % 12 === 0 ? 12 : hour % 12}:${minutes} ${hour < 12 ? 'AM' : 'PM'}`}
-                  </div>
-                );
-              })}
-            </div>
-
-            {Object.entries(teeTimes).map(([simulator, times]) => (
-              <div key={simulator} className="flex flex-1 flex-col">
-                {times.map((item: TeeTime) => {
-                  const startTime = new Date(item.start_time);
-                  const endTime = new Date(item.end_time);
-                  const durationInMinutes = (endTime.getTime() - startTime.getTime()) / 60000;
-                  const slotSpan = Math.ceil(durationInMinutes / 30);
-
+          {Object.keys(teeTimes).length > 0 && (
+            <div className="flex flex-row">
+              <div className="flex flex-col w-26">
+                {Array.from({ length: 48 }, (_, index) => {
+                  const hour = Math.floor(index / 2);
+                  const minutes = index % 2 === 0 ? '00' : '30';
                   return (
-                    <div
-                      key={item.id}
-                      className={`h-${slotSpan * 12} min-h-12 py-2 border-b p-2 border-gray-100`}
-                    >
-                      <div className="flex-1 h-full">
-                        {(() => {
-                          const bookingData = item.tee_time_bookings[0]?.bookings;
-                          const isBooked = bookingData !== undefined;
-
-                          return (
-                            <div
-                              className={`h-full rounded-md overflow-hidden ${
-                                isBooked ? "bg-gray-900" : "bg-gray-100 border border-gray-200"
-                              }`}
-                            >
-                              {isBooked ? (
-                                <button
-                                  className="w-full h-full px-2 py-[5px] text-white hover:bg-gray-700 flex items-start content-start min-w-0"
-                                  onClick={() => {
-                                    if (bookingData) {
-                                      const booking: Booking = {
-                                        ...bookingData,
-                                        guests: 0, // or the appropriate number of guests
-                                      };
-                                      handleDeleteBookingClick(item, booking);
-                                    }
-                                  }}
-                                >
-                                  <span className="text-sm text-left font-medium truncate ml-2 flex-1">
-                                    {`${bookingData?.users.first_name} ${bookingData?.users.last_name} (${
-                                      bookingData?.users.handicap < 0 
-                                        ? `+${Math.abs(bookingData.users.handicap)}` 
-                                        : bookingData?.users.handicap
-                                    })`}
-                                  </span>
-                                </button>
-                              ) : (
-                                <button
-                                  className="w-full h-full flex items-center justify-center hover:bg-gray-200"
-                                  onClick={() => handleBookingClick(item)}
-                                >
-                                  <PlusCircle className="text-gray-500" size={16} />
-                                </button>
-                              )}
-                            </div>
-                          );
-                        })()}
-                      </div>
+                    <div key={index} className="h-12 border-b w-26 pl-6 pr-4 border-gray-100 flex items-center justify-end text-sm font-small text-right">
+                      {`${hour % 12 === 0 ? 12 : hour % 12}:${minutes} ${hour < 12 ? 'AM' : 'PM'}`}
                     </div>
                   );
                 })}
               </div>
-            ))}
-          </div>
+
+              {Object.entries(teeTimes).map(([simulator, times]) => {
+                if (times.length === 0) return null; // Skip rendering if no tee times
+
+                let skipSlots = 0; // Track slots to skip for consecutive bookings
+
+                return (
+                  <div key={simulator} className="flex flex-1 flex-col">
+                    {times.map((item: TeeTime, index: number) => {
+                      if (skipSlots > 0) {
+                        skipSlots--;
+                        return null; // Skip rendering this slot
+                      }
+
+                      const bookingData = item.tee_time_bookings[0]?.bookings;
+                      const isBooked = bookingData !== undefined;
+
+                      // Check for consecutive bookings
+                      if (isBooked) {
+                        let consecutiveCount = 1;
+                        for (let i = index + 1; i < times.length; i++) {
+                          const nextBookingData = times[i].tee_time_bookings[0]?.bookings;
+                          if (nextBookingData && nextBookingData.id === bookingData.id) {
+                            consecutiveCount++;
+                          } else {
+                            break;
+                          }
+                        }
+                        skipSlots = consecutiveCount - 1; // Set slots to skip
+                      }
+
+                      return (
+                        <div
+                          key={item.id}
+                          className={`h-${isBooked ? 12 * (skipSlots + 1) : 12} min-h-12 py-2 border-b p-2 border-gray-100`}
+                        >
+                          <div className="flex-1 h-full">
+                            {isBooked ? (
+                              <button
+                                className="w-full h-full px-2 py-[5px] rounded-md text-white bg-gray-900 border border-gray-500 hover:bg-gray-700 flex items-start content-start min-w-0"
+                                onClick={() => {
+                                  if (bookingData) {
+                                    const booking: Booking = {
+                                      ...bookingData,
+                                      guests: 0, // or the appropriate number of guests
+                                    };
+                                    handleDeleteBookingClick(item, booking);
+                                  }
+                                }}
+                              >
+                                <span className="text-sm text-left font-medium truncate ml-2 flex-1">
+                                  {`${bookingData?.users.first_name} ${bookingData?.users.last_name} (${
+                                    bookingData?.users.handicap < 0 
+                                      ? `+${Math.abs(bookingData.users.handicap)}` 
+                                      : bookingData?.users.handicap
+                                  })`}
+                                </span>
+                              </button>
+                            ) : (
+                              <button
+                                className="w-full h-full flex items-center justify-center rounded-md border border-gray-200 bg-gray-100 hover:bg-gray-200"
+                                onClick={() => handleBookingClick(item)}
+                              >
+                                <PlusCircle className="text-gray-500" size={16} />
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                );
+              })}
+            </div>
+          )}
 
           {selectedTeeTime && (
             <BookingModal

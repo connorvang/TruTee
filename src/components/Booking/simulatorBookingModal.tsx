@@ -43,10 +43,8 @@ export function BookingModal({ isOpen, onClose, teeTime, onBookingComplete }: Bo
   const [newUserPhone, setNewUserPhone] = useState('')
   const [selectedDuration, setSelectedDuration] = useState("30");
 
-  // Calculate max available duration based on consecutive slots
   const maxAvailableSlots = teeTime.consecutive_slots?.length || 1;
 
-  // Generate duration options based on available slots
   const getDurationOptions = () => {
     const options = [];
     for (let i = 1; i <= maxAvailableSlots; i++) {
@@ -140,11 +138,9 @@ export function BookingModal({ isOpen, onClose, teeTime, onBookingComplete }: Bo
         throw new Error('No user selected')
       }
 
-      // Calculate how many 30-minute slots we need to book
       const numberOfSlots = parseInt(selectedDuration) / 30;
       const slotsToBook = teeTime.consecutive_slots?.slice(0, numberOfSlots) || [teeTime];
 
-      // Create a single booking record
       const { data: newBooking, error: bookingError } = await supabase
         .from('bookings')
         .insert({
@@ -157,19 +153,16 @@ export function BookingModal({ isOpen, onClose, teeTime, onBookingComplete }: Bo
         throw new Error('Failed to create booking')
       }
 
-      // Create array of tee time booking join records - all using the same booking_id
       const joinRecords = slotsToBook.map(slot => ({
         teetime_id: slot.id,
-        booking_id: newBooking.id, // Use the same booking ID for all slots
+        booking_id: newBooking.id,
       }));
 
-      // Insert all join records at once
       const { error: joinError } = await supabase
         .from('tee_time_bookings')
         .insert(joinRecords);
 
       if (joinError) {
-        // If join table creation fails, clean up the booking
         await supabase
           .from('bookings')
           .delete()
@@ -177,7 +170,6 @@ export function BookingModal({ isOpen, onClose, teeTime, onBookingComplete }: Bo
         throw new Error('Failed to create tee time booking joins')
       }
 
-      // Update all tee times at once
       const { error: updateError } = await supabase
         .from('tee_times')
         .update({ available_spots: 0 })
@@ -218,10 +210,8 @@ export function BookingModal({ isOpen, onClose, teeTime, onBookingComplete }: Bo
           </DialogDescription>
         </DialogHeader>
 
-        
-
         <div className="space-y-4 py-4">
-        <div className="space-y-2">
+          <div className="space-y-2">
             <Label>User</Label>
             <Select
               value={isNewUser ? "new" : selectedUserId || ""}
@@ -267,7 +257,6 @@ export function BookingModal({ isOpen, onClose, teeTime, onBookingComplete }: Bo
               </SelectContent>
             </Select>
           </div>
-
 
           {isNewUser && (
             <div className="space-y-4">

@@ -175,13 +175,28 @@ export default function TeeTimesList() {
   };
 
   const handleBookingClick = (item: TeeTime) => {
+    const availableSlots: TeeTime[] = [];
+    let totalDuration = 0;
+    const startIndex = teeTimes[item.simulator].findIndex(slot => slot.id === item.id);
+
+    for (let i = startIndex; i < teeTimes[item.simulator].length; i++) {
+      const slot = teeTimes[item.simulator][i];
+      if (totalDuration >= 180) break; // Stop if we reach 3 hours
+      if (slot.tee_time_bookings.length > 0) break; // Stop if there's a booking
+
+      availableSlots.push(slot as TeeTime);
+      totalDuration += (new Date(slot.end_time).getTime() - new Date(slot.start_time).getTime()) / 60000;
+    }
+
     console.log('Booking clicked:', {
       simulator: item.simulator,
       time: format(new Date(item.start_time), 'h:mm a'),
       startTime: item.start_time,
-      endTime: item.end_time
+      endTime: item.end_time,
+      availableSlots
     });
-    setSelectedTeeTime(item);
+
+    setSelectedTeeTime({ ...item, consecutive_slots: availableSlots });
     setIsBookingModalOpen(true);
   };
 
@@ -273,14 +288,14 @@ export default function TeeTimesList() {
             </TabsTrigger>
           ))}
         </TabsList>
-        <div className="flex">
-          <div className="flex flex-col w-20"></div>
+        <div className="flex pl-6 h-10 baysHeader">
+          <div className="w-20 pr-4 text-sm font-small text-right"></div>
           <div className="flex flex-1 text-sm font-medium text-gray-800 justify-center items-center">Bay 1</div>
           <div className="flex flex-1 text-sm font-medium text-gray-800 justify-center items-center">Bay 2</div>
           
         </div>
 
-        <div className="relative">
+        <div className="relative timeSlots">
           {loadingTeeTimes ? (
             <div className="flex flex-col">
               {Array.from({ length: 10 }).map((_, idx) => (
@@ -309,13 +324,14 @@ export default function TeeTimesList() {
           )}
 
           <div className="grid grid-cols-[auto_repeat(2,_1fr)]">
+
             {/* Time slots on the left */}
             <div className="flex flex-col">
               {Array.from({ length: 48 }, (_, index) => {
                 const hour = Math.floor(index / 2);
                 const minutes = index % 2 === 0 ? '00' : '30';
                 return (
-                  <div key={index} className="h-[49px] border-b border-gray-100 flex items-center justify-end w-20 pr-4 text-sm font-small text-right">
+                  <div key={index} className="h-[49px] border-b w-26 pl-6 pr-4 border-gray-100 flex items-center justify-end text-sm font-small text-right">
                     {`${hour % 12 === 0 ? 12 : hour % 12}:${minutes} ${hour < 12 ? 'AM' : 'PM'}`}
                   </div>
                 );
@@ -325,60 +341,64 @@ export default function TeeTimesList() {
   {/* Simulator columns */}
   {Object.entries(teeTimes).map(([simulator, times]) => (
     <div key={simulator} className="grid grid-rows-12 grid-flow-row">
-      {times.map((item: TeeTime) => (
-        <div key={item.id} className="row-span-1 border-b p-2 border-gray-100">
-          {/* <div className="w-20 pr-4 text-sm font-small text-right">
-            {format(new Date(item.start_time), 'h:mm a')}
-          </div> */}
-          {/* <div className="w-20 pr-4 text-sm font-small text-gray-600 text-right">
-            ${item.price.toFixed(2)}
-          </div> */}
-          <div className="flex-1">
-            {(() => {
-              const bookingData = item.tee_time_bookings[0]?.bookings;
-              const isBooked = bookingData !== undefined;
+      {times.map((item: TeeTime) => {
+        const startTime = new Date(item.start_time);
+        const endTime = new Date(item.end_time);
+        const durationInMinutes = (endTime.getTime() - startTime.getTime()) / 60000;
+        const slotSpan = Math.ceil(durationInMinutes / 30); // Calculate number of 30-minute slots
 
-              return (
-                <div
-                  className={`h-8 rounded-md overflow-hidden ${
-                    isBooked ? "bg-gray-900" : "bg-gray-100 border border-gray-200"
-                  }`}
-                >
-                  {isBooked ? (
-                    <button
-                      className="w-full h-full px-2 text-white hover:bg-gray-700 flex items-center content-start min-w-0"
-                      onClick={() => {
-                        if (bookingData) {
-                          const booking: Booking = {
-                            ...bookingData,
-                            guests: 0, // or the appropriate number of guests
-                          };
-                          handleDeleteBookingClick(item, booking);
-                        }
-                      }}
-                    >
-                      <span className="text-sm text-left font-medium truncate ml-2 flex-1">
-                        {`${bookingData?.users.first_name} ${bookingData?.users.last_name} (${
-                          bookingData?.users.handicap < 0 
-                            ? `+${Math.abs(bookingData.users.handicap)}` 
-                            : bookingData?.users.handicap
-                        })`}
-                      </span>
-                    </button>
-                  ) : (
-                    <button
-                      className="w-full h-full flex items-center justify-center hover:bg-gray-200"
-                      onClick={() => handleBookingClick(item)}
-                    >
-                      <PlusCircle className="text-gray-500" size={16} />
-                    </button>
-                  )}
-                </div>
-              );
-            })()}
+        return (
+          <div
+            key={item.id}
+            className={`row-span-${slotSpan} border-b p-2 border-gray-100`}
+          >
+            <div className="flex-1">
+              {(() => {
+                const bookingData = item.tee_time_bookings[0]?.bookings;
+                const isBooked = bookingData !== undefined;
+
+                return (
+                  <div
+                    className={`h-8 rounded-md overflow-hidden ${
+                      isBooked ? "bg-gray-900" : "bg-gray-100 border border-gray-200"
+                    }`}
+                  >
+                    {isBooked ? (
+                      <button
+                        className="w-full h-full px-2 text-white hover:bg-gray-700 flex items-center content-start min-w-0"
+                        onClick={() => {
+                          if (bookingData) {
+                            const booking: Booking = {
+                              ...bookingData,
+                              guests: 0, // or the appropriate number of guests
+                            };
+                            handleDeleteBookingClick(item, booking);
+                          }
+                        }}
+                      >
+                        <span className="text-sm text-left font-medium truncate ml-2 flex-1">
+                          {`${bookingData?.users.first_name} ${bookingData?.users.last_name} (${
+                            bookingData?.users.handicap < 0 
+                              ? `+${Math.abs(bookingData.users.handicap)}` 
+                              : bookingData?.users.handicap
+                          })`}
+                        </span>
+                      </button>
+                    ) : (
+                      <button
+                        className="w-full h-full flex items-center justify-center hover:bg-gray-200"
+                        onClick={() => handleBookingClick(item)}
+                      >
+                        <PlusCircle className="text-gray-500" size={16} />
+                      </button>
+                    )}
+                  </div>
+                );
+              })()}
+            </div>
           </div>
-        </div>
-      ))}
+        );
+      })}
     </div>
   ))}
 </div>

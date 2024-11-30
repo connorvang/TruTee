@@ -1,6 +1,6 @@
 "use client"
 
-import { ChevronLeft, ChevronRight, PlusCircle, Users, ChevronDown, CarFront, Circle, LandPlot, Footprints } from 'lucide-react'
+import { ChevronLeft, ChevronRight, ChevronDown, LandPlot, PlusCircle } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { format } from "date-fns"
 import { BookingModal } from '../Booking/simulatorBookingModal'
@@ -13,8 +13,8 @@ import { Breadcrumb, BreadcrumbItem, BreadcrumbList, BreadcrumbPage, BreadcrumbS
 import { Calendar } from "@/components/ui/calendar"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { cn } from "@/lib/utils"
-import { useTeeTimes } from '@/hooks/useTeeTimes'
 import WeatherInfo from '../getWeather'
+import { useSimulatorTimes } from '@/hooks/useSimulatorTimes'
 
 // Helper function to get week number
 const getWeekNumber = (date: Date) => {
@@ -26,8 +26,6 @@ const getWeekNumber = (date: Date) => {
 interface Booking {
   id: string;
   user_id: string;
-  number_of_holes: number;
-  has_cart: boolean;
   guests: number;
   users: {
     handicap: number;
@@ -43,7 +41,10 @@ interface TeeTime {
   price: number;
   available_spots: number;
   booked_spots: number;
+  simulator: number;
+  consecutive_slots?: TeeTime[];
   tee_time_bookings: {
+    id: string;
     bookings: {
       id: string;
       user_id: string;
@@ -84,19 +85,13 @@ export default function TeeTimesList() {
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
   const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null)
   const [nowPosition, setNowPosition] = useState<number | null>(null);
-  const [intervalMinutes, setIntervalMinutes] = useState<number>(10);
-  const { teeTimes, loading: loadingTeeTimes } = useTeeTimes(date)
+  const [intervalMinutes, setIntervalMinutes] = useState<number>(30);
+  const { teeTimes, loading: loadingTeeTimes } = useSimulatorTimes(date);
 
   useEffect(() => {
-    if (teeTimes.length < 2) return;
-    
-    const time1 = new Date(teeTimes[0].start_time);
-    const time2 = new Date(teeTimes[1].start_time);
-    const actualInterval = (time2.getTime() - time1.getTime()) / 60000;
-    
-    setIntervalMinutes(actualInterval);
-  }, [teeTimes]);
-
+    setIntervalMinutes(30);
+  }, []);
+  
   useEffect(() => {
     if (date) {
       setCurrentWeek(getWeekNumber(date));
@@ -109,14 +104,14 @@ export default function TeeTimesList() {
     if (intervalMinutes === null) return;
 
     const updateNowPosition = () => {
-      if (!date || !teeTimes.length) {
+      if (!date || Object.keys(teeTimes).length === 0) {
         setNowPosition(null);
         return;
       }
 
       const now = new Date();
-      const firstTeeTime = new Date(teeTimes[0].start_time);
-      const lastTeeTime = new Date(teeTimes[teeTimes.length - 1].start_time);
+      const firstTeeTime = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0); // 12:00 AM
+      const lastTeeTime = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 30, 0); // 11:30 PM
 
       if (now < firstTeeTime || now > lastTeeTime) {
         setNowPosition(null);
@@ -124,9 +119,7 @@ export default function TeeTimesList() {
       }
 
       const minutesSinceFirstTeeTime = (now.getTime() - firstTeeTime.getTime()) / 60000;
-      const pixelsPerMinute = 49 / intervalMinutes;
-
-      setNowPosition(minutesSinceFirstTeeTime * pixelsPerMinute);
+      setNowPosition(minutesSinceFirstTeeTime * 1.6);
     };
 
     updateNowPosition();
@@ -182,6 +175,12 @@ export default function TeeTimesList() {
   };
 
   const handleBookingClick = (item: TeeTime) => {
+    console.log('Booking clicked:', {
+      simulator: item.simulator,
+      time: format(new Date(item.start_time), 'h:mm a'),
+      startTime: item.start_time,
+      endTime: item.end_time
+    });
     setSelectedTeeTime(item);
     setIsBookingModalOpen(true);
   };
@@ -196,15 +195,14 @@ export default function TeeTimesList() {
     <div className="p-0">
       <div className="flex items-center justify-between px-6 py-2 bg-background border-b border-gray-100">
         <div className="flex items-center gap-4">
-          <Button variant="outline" 
+          <Button 
+            variant="outline" 
             className="h-8" 
             onClick={() => setDate(new Date())}
           >
             Today
           </Button>
-
           <Separator orientation="vertical" className="h-4" />
-
           <Breadcrumb>
             <BreadcrumbList>
               <BreadcrumbItem>
@@ -240,22 +238,6 @@ export default function TeeTimesList() {
         </div>
 
         <div className="flex items-center gap-8">
-          <div className="flex items-center gap-4">
-            <div className="flex items-center gap-1 text-sm font-medium">
-              <Circle className="flex text-gray-900" size={16} />
-              {teeTimes.reduce((total, item) => {
-                const bookedSpots = item.tee_time_bookings.reduce((sum, booking) => 
-                  sum + (booking.bookings ? 1 + booking.bookings.guests : 0), 0);
-                return total + (4 - bookedSpots);
-              }, 0)}
-            </div>
-            <div className="flex items-center gap-1 text-sm font-medium">
-              <Users className="text-gray-900" size={16} />
-              {teeTimes.reduce((total, item) => 
-                total + item.tee_time_bookings.reduce((sum, booking) => 
-                  sum + (booking.bookings ? 1 + booking.bookings.guests : 0), 0), 0)}
-            </div>
-          </div>
 
           <WeatherInfo />
 
@@ -291,6 +273,12 @@ export default function TeeTimesList() {
             </TabsTrigger>
           ))}
         </TabsList>
+        <div className="flex">
+          <div className="flex flex-col w-20"></div>
+          <div className="flex flex-1 text-sm font-medium text-gray-800 justify-center items-center">Bay 1</div>
+          <div className="flex flex-1 text-sm font-medium text-gray-800 justify-center items-center">Bay 2</div>
+          
+        </div>
 
         <div className="relative">
           {loadingTeeTimes ? (
@@ -299,7 +287,7 @@ export default function TeeTimesList() {
                 <Skeleton key={idx} />
               ))}
             </div>
-          ) : teeTimes.length === 0 ? (
+          ) : Object.keys(teeTimes).length === 0 ? (
             <div className="flex flex-col items-center justify-center gap-4 py-16 text-gray-500">
               <LandPlot size={32} />
               No tee times available for this date.
@@ -317,77 +305,83 @@ export default function TeeTimesList() {
                   <div className="flex-1 ml-8 h-[1px] bg-red-500"></div>
                 </div>
               )}
-
-              {teeTimes.map((item) => (
-                <div key={item.id} className="flex items-center border-b px-6 py-2 border-gray-100">
-                  <div className="w-20 pr-4 text-sm font-small text-right">
-                    {format(new Date(item.start_time), 'h:mm a')}
-                  </div>
-                  <div className="w-20 pr-4 text-sm font-small text-gray-600 text-right">
-                    ${item.price.toFixed(2)}
-                  </div>
-                  <div className="grid grid-cols-4 gap-2 flex-1">
-                    {(() => {
-                      const totalBookedSpots = item.tee_time_bookings.reduce((total, booking) => 
-                        total + (booking.bookings ? 1 + booking.bookings.guests : 0), 0);
-
-                      return Array.from({ length: 4 }, (_, idx) => {
-                        const isBooked = idx < totalBookedSpots;
-                        const booking = item.tee_time_bookings[0]?.bookings;
-                        const isGuest = booking ? idx > 0 && idx <= booking.guests : false;
-
-                        return (
-                          <div
-                            key={idx}
-                            className={`h-8 rounded-md overflow-hidden ${
-                              isBooked
-                                ? isGuest ? "bg-gray-500" : "bg-gray-900"
-                                : "bg-gray-100 border border-gray-200"
-                            }`}
-                          >
-                            {isBooked ? (
-                              <button
-                                className="w-full h-full px-2 text-white hover:bg-gray-700 flex items-center content-start min-w-0"
-                                onClick={() => {
-                                  if (booking) {
-                                    handleDeleteBookingClick(item, booking);
-                                  }
-                                }}
-                              >
-                                <div className="flex items-center shrink-0 gap-1">
-                                  {booking?.has_cart ? <CarFront size={16} /> : <Footprints size={16} />}
-                                  <span className="text-xs font-bold w-4">
-                                    {booking?.number_of_holes || 0}
-                                  </span>
-                                </div>
-                                <span className="text-sm text-left font-medium truncate ml-2 flex-1">
-                                  {isGuest 
-                                    ? `Guest (0)` 
-                                    : `${booking?.users.first_name} ${booking?.users.last_name} (${
-                                        booking?.users.handicap < 0 
-                                          ? `+${Math.abs(booking.users.handicap)}` 
-                                          : booking?.users.handicap
-                                      })`
-                                  }
-                                </span>
-                              </button>
-                            ) : (
-                              <button
-                                className="w-full h-full flex items-center justify-center hover:bg-gray-200"
-                                onClick={() => handleBookingClick(item)}
-                              >
-                                <PlusCircle className="text-gray-500" size={16} />
-                              </button>
-                            )}
-                          </div>
-                        );
-                      });
-                    })()}
-                  </div>
-                </div>
-              ))}
             </>
           )}
+
+          <div className="grid grid-cols-[auto_repeat(2,_1fr)]">
+            {/* Time slots on the left */}
+            <div className="flex flex-col">
+              {Array.from({ length: 48 }, (_, index) => {
+                const hour = Math.floor(index / 2);
+                const minutes = index % 2 === 0 ? '00' : '30';
+                return (
+                  <div key={index} className="h-[49px] border-b border-gray-100 flex items-center justify-end w-20 pr-4 text-sm font-small text-right">
+                    {`${hour % 12 === 0 ? 12 : hour % 12}:${minutes} ${hour < 12 ? 'AM' : 'PM'}`}
+                  </div>
+                );
+              })}
+            </div>
+
+  {/* Simulator columns */}
+  {Object.entries(teeTimes).map(([simulator, times]) => (
+    <div key={simulator} className="grid grid-rows-12 grid-flow-row">
+      {times.map((item: TeeTime) => (
+        <div key={item.id} className="row-span-1 border-b p-2 border-gray-100">
+          {/* <div className="w-20 pr-4 text-sm font-small text-right">
+            {format(new Date(item.start_time), 'h:mm a')}
+          </div> */}
+          {/* <div className="w-20 pr-4 text-sm font-small text-gray-600 text-right">
+            ${item.price.toFixed(2)}
+          </div> */}
+          <div className="flex-1">
+            {(() => {
+              const bookingData = item.tee_time_bookings[0]?.bookings;
+              const isBooked = bookingData !== undefined;
+
+              return (
+                <div
+                  className={`h-8 rounded-md overflow-hidden ${
+                    isBooked ? "bg-gray-900" : "bg-gray-100 border border-gray-200"
+                  }`}
+                >
+                  {isBooked ? (
+                    <button
+                      className="w-full h-full px-2 text-white hover:bg-gray-700 flex items-center content-start min-w-0"
+                      onClick={() => {
+                        if (bookingData) {
+                          const booking: Booking = {
+                            ...bookingData,
+                            guests: 0, // or the appropriate number of guests
+                          };
+                          handleDeleteBookingClick(item, booking);
+                        }
+                      }}
+                    >
+                      <span className="text-sm text-left font-medium truncate ml-2 flex-1">
+                        {`${bookingData?.users.first_name} ${bookingData?.users.last_name} (${
+                          bookingData?.users.handicap < 0 
+                            ? `+${Math.abs(bookingData.users.handicap)}` 
+                            : bookingData?.users.handicap
+                        })`}
+                      </span>
+                    </button>
+                  ) : (
+                    <button
+                      className="w-full h-full flex items-center justify-center hover:bg-gray-200"
+                      onClick={() => handleBookingClick(item)}
+                    >
+                      <PlusCircle className="text-gray-500" size={16} />
+                    </button>
+                  )}
+                </div>
+              );
+            })()}
+          </div>
+        </div>
+      ))}
+    </div>
+  ))}
+</div>
 
           {selectedTeeTime && (
             <BookingModal

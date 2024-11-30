@@ -18,15 +18,20 @@ interface BookingModalProps {
     price: number
     available_spots: number
     end_time: string
+    simulator: number
+    consecutive_slots?: {
+      id: string
+      start_time: string
+      end_time: string
+      price: number
+      simulator: number
+    }[]
   }
   onBookingComplete: () => void
 }
 
 export function BookingModal({ isOpen, onClose, teeTime, onBookingComplete }: BookingModalProps) {
   const { user } = useUser()
-  const [numberOfSpots, setNumberOfSpots] = useState(1)
-  const [numberOfHoles, setNumberOfHoles] = useState<9 | 18>(18)
-  const [hasCart, setHasCart] = useState("true")
   const [isLoading, setIsLoading] = useState(false)
   const supabase = createClientComponentClient()
   const { toast } = useToast()
@@ -36,6 +41,30 @@ export function BookingModal({ isOpen, onClose, teeTime, onBookingComplete }: Bo
   const [newUserName, setNewUserName] = useState('')
   const [newUserEmail, setNewUserEmail] = useState('')
   const [newUserPhone, setNewUserPhone] = useState('')
+  const [selectedDuration, setSelectedDuration] = useState("30");
+
+  // Calculate max available duration based on consecutive slots
+  const maxAvailableSlots = teeTime.consecutive_slots?.length || 1;
+
+  // Generate duration options based on available slots
+  const getDurationOptions = () => {
+    const options = [];
+    for (let i = 1; i <= maxAvailableSlots; i++) {
+      const minutes = i * 30;
+      const hours = minutes / 60;
+      const label = hours >= 1 
+        ? hours === 1 
+          ? "1 hour" 
+          : `${hours} hours` 
+        : "30 minutes";
+      
+      options.push({
+        value: minutes.toString(),
+        label: label
+      });
+    }
+    return options;
+  };
 
   useEffect(() => {
     const fetchUsers = async () => {
@@ -57,6 +86,22 @@ export function BookingModal({ isOpen, onClose, teeTime, onBookingComplete }: Bo
       fetchUsers()
     }
   }, [isOpen, supabase])
+
+  useEffect(() => {
+    if (isOpen) {
+      console.log('Booking Modal opened with data:', teeTime);
+      console.log('Simulator:', teeTime.simulator);
+      if (teeTime.consecutive_slots) {
+        console.log('Available consecutive slots:', teeTime.consecutive_slots.length);
+        console.log('Consecutive slots:', teeTime.consecutive_slots);
+        console.log('Time range:', 
+          format(new Date(teeTime.consecutive_slots[0].start_time), 'h:mm a'),
+          'to',
+          format(new Date(teeTime.consecutive_slots[teeTime.consecutive_slots.length - 1].end_time), 'h:mm a')
+        );
+      }
+    }
+  }, [isOpen, teeTime]);
 
   const handleBooking = async () => {
     if (!user) {
@@ -95,54 +140,56 @@ export function BookingModal({ isOpen, onClose, teeTime, onBookingComplete }: Bo
         throw new Error('No user selected')
       }
 
-      const guests = Math.max(0, numberOfSpots - 1)
+      // Calculate how many 30-minute slots we need to book
+      const numberOfSlots = parseInt(selectedDuration) / 30;
+      const slotsToBook = teeTime.consecutive_slots?.slice(0, numberOfSlots) || [teeTime];
 
-      // First, create the booking
+      // Create a single booking record
       const { data: newBooking, error: bookingError } = await supabase
         .from('bookings')
         .insert({
           user_id: bookingUserId,
-          number_of_holes: numberOfHoles,
-          has_cart: hasCart === "true",
-          guests: guests,
         })
         .select('id')
-        .single()
+        .single();
 
       if (bookingError || !newBooking) {
         throw new Error('Failed to create booking')
       }
 
-      // Then, create the join table entry
+      // Create array of tee time booking join records - all using the same booking_id
+      const joinRecords = slotsToBook.map(slot => ({
+        teetime_id: slot.id,
+        booking_id: newBooking.id, // Use the same booking ID for all slots
+      }));
+
+      // Insert all join records at once
       const { error: joinError } = await supabase
         .from('tee_time_bookings')
-        .insert({
-          teetime_id: teeTime.id,
-          booking_id: newBooking.id,
-        })
+        .insert(joinRecords);
 
       if (joinError) {
-        // If join table creation fails, we should clean up the booking
+        // If join table creation fails, clean up the booking
         await supabase
           .from('bookings')
           .delete()
-          .eq('id', newBooking.id)
-        throw new Error('Failed to create tee time booking join')
+          .eq('id', newBooking.id);
+        throw new Error('Failed to create tee time booking joins')
       }
 
-      // Update available spots
+      // Update all tee times at once
       const { error: updateError } = await supabase
         .from('tee_times')
-        .update({
-          available_spots: teeTime.available_spots - numberOfSpots,
-        })
-        .eq('id', teeTime.id)
+        .update({ available_spots: 0 })
+        .in('id', slotsToBook.map(slot => slot.id));
 
-      if (updateError) throw updateError
+      if (updateError) {
+        throw new Error('Failed to update tee time availability')
+      }
 
       toast({
         title: "Success!",
-        description: "Your tee time has been booked.",
+        description: `Your ${selectedDuration} minute simulator session has been booked.`,
         variant: "default",
         className: "bg-white dark:bg-gray-800",
       })
@@ -171,8 +218,10 @@ export function BookingModal({ isOpen, onClose, teeTime, onBookingComplete }: Bo
           </DialogDescription>
         </DialogHeader>
 
+        
+
         <div className="space-y-4 py-4">
-          <div className="space-y-2">
+        <div className="space-y-2">
             <Label>User</Label>
             <Select
               value={isNewUser ? "new" : selectedUserId || ""}
@@ -199,6 +248,26 @@ export function BookingModal({ isOpen, onClose, teeTime, onBookingComplete }: Bo
               </SelectContent>
             </Select>
           </div>
+
+          <div className="space-y-2">
+            <Label>Duration</Label>
+            <Select
+              value={selectedDuration}
+              onValueChange={setSelectedDuration}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Select duration" />
+              </SelectTrigger>
+              <SelectContent>
+                {getDurationOptions().map((option) => (
+                  <SelectItem key={option.value} value={option.value}>
+                    {option.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
 
           {isNewUser && (
             <div className="space-y-4">
@@ -230,68 +299,6 @@ export function BookingModal({ isOpen, onClose, teeTime, onBookingComplete }: Bo
               </div>
             </div>
           )}
-
-          <div className="space-y-2">
-            <Label>Players</Label>
-            <Select 
-              value={numberOfSpots.toString()} 
-              onValueChange={(value) => setNumberOfSpots(parseInt(value))}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Select players" />
-              </SelectTrigger>
-              <SelectContent>
-                {[1, 2, 3, 4].map((num) => (
-                  <SelectItem 
-                    key={num} 
-                    value={num.toString()}
-                    disabled={num > teeTime.available_spots}
-                  >
-                    {num === 1 
-                      ? '1 Player (No guests)' 
-                      : `${num} Players (${num - 1} guest${num - 1 === 1 ? '' : 's'})`}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <div className="text-sm text-muted-foreground">
-              {numberOfSpots > 1 
-                ? `Booking for 1 player + ${numberOfSpots - 1} guest${numberOfSpots - 1 === 1 ? '' : 's'}`
-                : 'Booking for 1 player'}
-            </div>
-          </div>
-
-          <div className="space-y-4">
-      <div className="space-y-2">
-        <Label>Holes</Label>
-        <Select value={numberOfHoles.toString()} onValueChange={(value) => setNumberOfHoles(parseInt(value) as 9 | 18)}>
-          <SelectTrigger>
-            <SelectValue placeholder="Select holes" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="9">9 Holes</SelectItem>
-            <SelectItem value="18">18 Holes</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
-
-      <div className="space-y-2">
-        <Label>Cart</Label>
-        <Select value={hasCart} onValueChange={(value) => setHasCart(value as 'walking' | 'cart')}>
-          <SelectTrigger>
-            <SelectValue placeholder="Select type" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="false">Walking</SelectItem>
-            <SelectItem value="true">Cart</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
-          </div>
-          
-          <div className="text-sm text-muted-foreground">
-            Total Price: ${(teeTime.price * numberOfSpots).toFixed(2)}
-          </div>
         </div>
 
         <DialogFooter>

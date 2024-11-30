@@ -323,85 +323,82 @@ export default function TeeTimesList() {
             </>
           )}
 
-          <div className="grid grid-cols-[auto_repeat(2,_1fr)]">
-
-            {/* Time slots on the left */}
-            <div className="flex flex-col">
+          <div className="flex flex-row">
+            <div className="flex flex-col w-26">
               {Array.from({ length: 48 }, (_, index) => {
                 const hour = Math.floor(index / 2);
                 const minutes = index % 2 === 0 ? '00' : '30';
                 return (
-                  <div key={index} className="h-[49px] border-b w-26 pl-6 pr-4 border-gray-100 flex items-center justify-end text-sm font-small text-right">
+                  <div key={index} className="h-12 border-b w-26 pl-6 pr-4 border-gray-100 flex items-center justify-end text-sm font-small text-right">
                     {`${hour % 12 === 0 ? 12 : hour % 12}:${minutes} ${hour < 12 ? 'AM' : 'PM'}`}
                   </div>
                 );
               })}
             </div>
 
-  {/* Simulator columns */}
-  {Object.entries(teeTimes).map(([simulator, times]) => (
-    <div key={simulator} className="grid grid-rows-12 grid-flow-row">
-      {times.map((item: TeeTime) => {
-        const startTime = new Date(item.start_time);
-        const endTime = new Date(item.end_time);
-        const durationInMinutes = (endTime.getTime() - startTime.getTime()) / 60000;
-        const slotSpan = Math.ceil(durationInMinutes / 30); // Calculate number of 30-minute slots
+            {Object.entries(teeTimes).map(([simulator, times]) => (
+              <div key={simulator} className="flex flex-1 flex-col">
+                {times.map((item: TeeTime) => {
+                  const startTime = new Date(item.start_time);
+                  const endTime = new Date(item.end_time);
+                  const durationInMinutes = (endTime.getTime() - startTime.getTime()) / 60000;
+                  const slotSpan = Math.ceil(durationInMinutes / 30);
 
-        return (
-          <div
-            key={item.id}
-            className={`row-span-${slotSpan} border-b p-2 border-gray-100`}
-          >
-            <div className="flex-1">
-              {(() => {
-                const bookingData = item.tee_time_bookings[0]?.bookings;
-                const isBooked = bookingData !== undefined;
+                  return (
+                    <div
+                      key={item.id}
+                      className={`h-${slotSpan * 12} min-h-12 py-2 border-b p-2 border-gray-100`}
+                    >
+                      <div className="flex-1 h-full">
+                        {(() => {
+                          const bookingData = item.tee_time_bookings[0]?.bookings;
+                          const isBooked = bookingData !== undefined;
 
-                return (
-                  <div
-                    className={`h-8 rounded-md overflow-hidden ${
-                      isBooked ? "bg-gray-900" : "bg-gray-100 border border-gray-200"
-                    }`}
-                  >
-                    {isBooked ? (
-                      <button
-                        className="w-full h-full px-2 text-white hover:bg-gray-700 flex items-center content-start min-w-0"
-                        onClick={() => {
-                          if (bookingData) {
-                            const booking: Booking = {
-                              ...bookingData,
-                              guests: 0, // or the appropriate number of guests
-                            };
-                            handleDeleteBookingClick(item, booking);
-                          }
-                        }}
-                      >
-                        <span className="text-sm text-left font-medium truncate ml-2 flex-1">
-                          {`${bookingData?.users.first_name} ${bookingData?.users.last_name} (${
-                            bookingData?.users.handicap < 0 
-                              ? `+${Math.abs(bookingData.users.handicap)}` 
-                              : bookingData?.users.handicap
-                          })`}
-                        </span>
-                      </button>
-                    ) : (
-                      <button
-                        className="w-full h-full flex items-center justify-center hover:bg-gray-200"
-                        onClick={() => handleBookingClick(item)}
-                      >
-                        <PlusCircle className="text-gray-500" size={16} />
-                      </button>
-                    )}
-                  </div>
-                );
-              })()}
-            </div>
+                          return (
+                            <div
+                              className={`h-full rounded-md overflow-hidden ${
+                                isBooked ? "bg-gray-900" : "bg-gray-100 border border-gray-200"
+                              }`}
+                            >
+                              {isBooked ? (
+                                <button
+                                  className="w-full h-full px-2 py-[5px] text-white hover:bg-gray-700 flex items-start content-start min-w-0"
+                                  onClick={() => {
+                                    if (bookingData) {
+                                      const booking: Booking = {
+                                        ...bookingData,
+                                        guests: 0, // or the appropriate number of guests
+                                      };
+                                      handleDeleteBookingClick(item, booking);
+                                    }
+                                  }}
+                                >
+                                  <span className="text-sm text-left font-medium truncate ml-2 flex-1">
+                                    {`${bookingData?.users.first_name} ${bookingData?.users.last_name} (${
+                                      bookingData?.users.handicap < 0 
+                                        ? `+${Math.abs(bookingData.users.handicap)}` 
+                                        : bookingData?.users.handicap
+                                    })`}
+                                  </span>
+                                </button>
+                              ) : (
+                                <button
+                                  className="w-full h-full flex items-center justify-center hover:bg-gray-200"
+                                  onClick={() => handleBookingClick(item)}
+                                >
+                                  <PlusCircle className="text-gray-500" size={16} />
+                                </button>
+                              )}
+                            </div>
+                          );
+                        })()}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            ))}
           </div>
-        );
-      })}
-    </div>
-  ))}
-</div>
 
           {selectedTeeTime && (
             <BookingModal

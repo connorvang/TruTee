@@ -17,6 +17,7 @@ interface BookingModalProps {
     start_time: string
     price: number
     available_spots: number
+    end_time: string
   }
   onBookingComplete: () => void
 }
@@ -94,21 +95,42 @@ export function BookingModal({ isOpen, onClose, teeTime, onBookingComplete }: Bo
         throw new Error('No user selected')
       }
 
-      const guests = numberOfSpots - 1
+      const guests = Math.max(0, numberOfSpots - 1)
 
-      const { error: bookingError } = await supabase
+      // First, create the booking
+      const { data: newBooking, error: bookingError } = await supabase
         .from('bookings')
         .insert({
-          teetime_id: teeTime.id,
           user_id: bookingUserId,
-          booked_spots: numberOfSpots,
           number_of_holes: numberOfHoles,
-          has_cart: hasCart,
+          has_cart: hasCart === "true",
           guests: guests,
         })
+        .select('id')
+        .single()
 
-      if (bookingError) throw bookingError
+      if (bookingError || !newBooking) {
+        throw new Error('Failed to create booking')
+      }
 
+      // Then, create the join table entry
+      const { error: joinError } = await supabase
+        .from('tee_time_bookings')
+        .insert({
+          teetime_id: teeTime.id,
+          booking_id: newBooking.id,
+        })
+
+      if (joinError) {
+        // If join table creation fails, we should clean up the booking
+        await supabase
+          .from('bookings')
+          .delete()
+          .eq('id', newBooking.id)
+        throw new Error('Failed to create tee time booking join')
+      }
+
+      // Update available spots
       const { error: updateError } = await supabase
         .from('tee_times')
         .update({
@@ -219,13 +241,24 @@ export function BookingModal({ isOpen, onClose, teeTime, onBookingComplete }: Bo
                 <SelectValue placeholder="Select players" />
               </SelectTrigger>
               <SelectContent>
-                {Array.from({ length: teeTime.available_spots }, (_, i) => i + 1).map((num) => (
-                  <SelectItem key={num} value={num.toString()}>
-                    {num} {num === 1 ? 'Player' : 'Players'}
+                {[1, 2, 3, 4].map((num) => (
+                  <SelectItem 
+                    key={num} 
+                    value={num.toString()}
+                    disabled={num > teeTime.available_spots}
+                  >
+                    {num === 1 
+                      ? '1 Player (No guests)' 
+                      : `${num} Players (${num - 1} guest${num - 1 === 1 ? '' : 's'})`}
                   </SelectItem>
                 ))}
               </SelectContent>
             </Select>
+            <div className="text-sm text-muted-foreground">
+              {numberOfSpots > 1 
+                ? `Booking for 1 player + ${numberOfSpots - 1} guest${numberOfSpots - 1 === 1 ? '' : 's'}`
+                : 'Booking for 1 player'}
+            </div>
           </div>
 
           <div className="space-y-4">

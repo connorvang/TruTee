@@ -1,7 +1,7 @@
 'use client'
 
 import { AppSidebar } from "@/components/Sidenav/app-sidebar"
-import TeeTimeSettings from "@/components/teeTimesSettings"
+import TeeTimeSettings from "@/components/Settings/teeTimesSettings"
 import {
   Breadcrumb,
   BreadcrumbItem,

@@ -17,10 +17,16 @@ import WeatherInfo from '../getWeather'
 import { useSimulatorTimes } from '@/hooks/useSimulatorTimes'
 
 // Helper function to get week number
-const getWeekNumber = (date: Date) => {
-  const firstDayOfYear = new Date(date.getFullYear(), 0, 1);
-  const pastDaysOfYear = (date.getTime() - firstDayOfYear.getTime()) / 86400000;
-  return Math.ceil((pastDaysOfYear + firstDayOfYear.getDay() + 1) / 7);
+const getWeekNumber = (date: Date): number => {
+  const target = new Date(date);
+  const firstDayOfYear = new Date(target.getFullYear(), 0, 1);
+  const daysSinceFirstDay = Math.floor((target.getTime() - firstDayOfYear.getTime()) / (24 * 60 * 60 * 1000));
+  
+  // Adjust the days to ensure Sunday starts the week
+  const firstDayOffset = firstDayOfYear.getDay(); // 0 for Sunday, 1 for Monday, etc.
+  const adjustedDays = daysSinceFirstDay + firstDayOffset;
+  
+  return Math.ceil(adjustedDays / 7);
 };
 
 interface Booking {
@@ -135,21 +141,27 @@ export default function TeeTimesList() {
     return () => clearInterval(interval);
   }, [date, teeTimes, intervalMinutes]);
 
-  const getWeekDates = (week: number, year: number) => {
-    const firstDayOfYear = new Date(year, 0, 1);
-    const firstDayOfWeek = new Date(year, 0, 1 + (week - 1) * 7 - firstDayOfYear.getDay());
+  const getWeekDates = (currentDate: Date) => {
+    // Clone the date to avoid modifying the original
+    const date = new Date(currentDate);
+    
+    // Get Monday of the current week
+    const day = date.getDay();
+    const diff = day === 0 ? -6 : 1 - day; // Adjust to get Monday
+    const startOfWeek = new Date(date);
+    startOfWeek.setDate(date.getDate() + diff);
     
     return Array.from({ length: 7 }, (_, i) => {
-      const date = new Date(firstDayOfWeek);
-      date.setDate(firstDayOfWeek.getDate() + i);
+      const day = new Date(startOfWeek);
+      day.setDate(startOfWeek.getDate() + i);
       return {
-        dayShort: date.toLocaleDateString('en-US', { weekday: 'short' }),
-        date: date.getDate()
+        dayShort: day.toLocaleDateString('en-US', { weekday: 'short' }),
+        date: day.getDate()
       };
     });
   };
 
-  const weekdays = getWeekDates(currentWeek, currentYear);
+  const weekdays = getWeekDates(date || new Date());
 
   const handlePreviousWeek = () => {
     if (date) {
@@ -168,16 +180,19 @@ export default function TeeTimesList() {
   };
 
   const getDateFromDay = (dayShort: string) => {
-    const firstDayOfYear = new Date(currentYear, 0, 1);
-    const firstDayOfWeek = new Date(currentYear, 0, 1 + (currentWeek - 1) * 7 - firstDayOfYear.getDay());
+    const targetDate = date || new Date();
+    const day = targetDate.getDay();
+    const diff = day === 0 ? -6 : 1 - day; // Adjust to get Monday
+    const startOfWeek = new Date(targetDate);
+    startOfWeek.setDate(targetDate.getDate() + diff);
     
     const daysMap: { [key: string]: number } = {
-      "Sun": 0, "Mon": 1, "Tue": 2, "Wed": 3, 
-      "Thu": 4, "Fri": 5, "Sat": 6
+      "Mon": 0, "Tue": 1, "Wed": 2, "Thu": 3, 
+      "Fri": 4, "Sat": 5, "Sun": 6
     };
     
-    const newDate = new Date(firstDayOfWeek);
-    newDate.setDate(firstDayOfWeek.getDate() + daysMap[dayShort]);
+    const newDate = new Date(startOfWeek);
+    newDate.setDate(startOfWeek.getDate() + daysMap[dayShort]);
     return newDate;
   };
 
@@ -251,8 +266,9 @@ export default function TeeTimesList() {
                     <Calendar
                       mode="single"
                       selected={date}
-                      onSelect={setDate}
+                      onSelect={(newDate) => newDate && setDate(newDate)}
                       initialFocus
+                      required
                     />
                   </PopoverContent>
                 </Popover>

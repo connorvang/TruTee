@@ -73,8 +73,6 @@ export function useSimulatorTimes(date: Date | undefined) {
 
         if (error) throw error
 
-        console.log('Fetched data:', data)
-
         const grouped = data.reduce((acc: teeTimes, teeTime: TeeTime) => {
           if (!acc[teeTime.simulator]) {
             acc[teeTime.simulator] = []
@@ -82,8 +80,6 @@ export function useSimulatorTimes(date: Date | undefined) {
           acc[teeTime.simulator].push(teeTime)
           return acc
         }, {})
-
-        console.log('Grouped data:', grouped)
 
         setGroupedTeeTimes(grouped)
         setError(null)

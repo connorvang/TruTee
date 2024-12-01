@@ -102,7 +102,6 @@ export function useTeeTimes(date: Date | undefined) {
         if (error) throw error
         setTeeTimes(data || []);
         setError(null)
-        console.log('Fetched tee times:', data)
       } catch (err) {
         setError(err instanceof Error ? err : new Error('Failed to fetch tee times'))
       } finally {

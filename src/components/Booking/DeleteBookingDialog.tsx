@@ -1,6 +1,6 @@
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog"
 import { useToast } from "@/hooks/use-toast"
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs"
 
 interface DeleteBookingDialogProps {
@@ -10,6 +10,11 @@ interface DeleteBookingDialogProps {
     id: string
     available_spots: number
     booked_spots: number
+    consecutive_slots?: {
+      id: string
+      available_spots: number
+      booked_spots: number
+    }[]
   }
   booking: {
     id: string
@@ -22,11 +27,19 @@ const deleteBooking = async (
   teeTimeId: string, 
   bookingId: string, 
   totalSpots: number,
-  teeTime: { available_spots: number; booked_spots: number }
+  teeTime: { 
+    available_spots: number; 
+    booked_spots: number;
+    consecutive_slots?: {
+      id: string
+      available_spots: number
+      booked_spots: number
+    }[] 
+  }
 ) => {
   const supabase = createClientComponentClient();
 
-  // Start a transaction
+  // Delete the booking
   const { error: bookingError } = await supabase
     .from('bookings')
     .delete()
@@ -34,21 +47,35 @@ const deleteBooking = async (
 
   if (bookingError) throw bookingError;
 
-  // Update tee time available spots
-  const { error: updateError } = await supabase
-    .from('tee_times')
-    .update({
-      available_spots: teeTime.available_spots + totalSpots,
-      booked_spots: teeTime.booked_spots - totalSpots
-    })
-    .eq('id', teeTimeId);
+  // If there are consecutive slots, update all of them
+  if (teeTime.consecutive_slots?.length) {
+    const { error: updateError } = await supabase
+      .from('tee_times')
+      .update({
+        available_spots: 1,
+        booked_spots: 0
+      })
+      .in('id', [teeTimeId, ...teeTime.consecutive_slots.map(slot => slot.id)]);
 
-  if (updateError) throw updateError;
+    if (updateError) throw updateError;
+  } else {
+    // Regular tee time update
+    const { error: updateError } = await supabase
+      .from('tee_times')
+      .update({
+        available_spots: teeTime.available_spots + totalSpots,
+        booked_spots: teeTime.booked_spots - totalSpots
+      })
+      .eq('id', teeTimeId);
+
+    if (updateError) throw updateError;
+  }
 };
 
 export function DeleteBookingDialog({ isOpen, onClose, teeTime, booking, onDeleteComplete }: DeleteBookingDialogProps) {
   const [isCancelling, setIsCancelling] = useState(false)
   const { toast } = useToast()
+
 
   const handleDeleteBooking = async () => {
     try {

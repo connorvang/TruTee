@@ -17,6 +17,7 @@ interface BookingModalProps {
     start_time: string
     price: number
     available_spots: number
+    booked_spots: number
     end_time: string
   }
   onBookingComplete: () => void
@@ -135,6 +136,7 @@ export function BookingModal({ isOpen, onClose, teeTime, onBookingComplete }: Bo
         .from('tee_times')
         .update({
           available_spots: teeTime.available_spots - numberOfSpots,
+          booked_spots: teeTime.booked_spots + numberOfSpots
         })
         .eq('id', teeTime.id)
 

@@ -85,21 +85,6 @@ export function BookingModal({ isOpen, onClose, teeTime, onBookingComplete }: Bo
     }
   }, [isOpen, supabase])
 
-  useEffect(() => {
-    if (isOpen) {
-      console.log('Booking Modal opened with data:', teeTime);
-      console.log('Simulator:', teeTime.simulator);
-      if (teeTime.consecutive_slots) {
-        console.log('Available consecutive slots:', teeTime.consecutive_slots.length);
-        console.log('Consecutive slots:', teeTime.consecutive_slots);
-        console.log('Time range:', 
-          format(new Date(teeTime.consecutive_slots[0].start_time), 'h:mm a'),
-          'to',
-          format(new Date(teeTime.consecutive_slots[teeTime.consecutive_slots.length - 1].end_time), 'h:mm a')
-        );
-      }
-    }
-  }, [isOpen, teeTime]);
 
   const handleBooking = async () => {
     if (!user) {
@@ -172,7 +157,10 @@ export function BookingModal({ isOpen, onClose, teeTime, onBookingComplete }: Bo
 
       const { error: updateError } = await supabase
         .from('tee_times')
-        .update({ available_spots: 0 })
+        .update({ 
+          available_spots: 0,
+          booked_spots: 1
+        })
         .in('id', slotsToBook.map(slot => slot.id));
 
       if (updateError) {

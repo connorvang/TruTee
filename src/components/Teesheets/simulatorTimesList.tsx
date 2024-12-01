@@ -210,20 +210,32 @@ export default function TeeTimesList() {
       totalDuration += (new Date(slot.end_time).getTime() - new Date(slot.start_time).getTime()) / 60000;
     }
 
-    console.log('Booking clicked:', {
-      simulator: item.simulator,
-      time: format(new Date(item.start_time), 'h:mm a'),
-      startTime: item.start_time,
-      endTime: item.end_time,
-      availableSlots
-    });
-
     setSelectedTeeTime({ ...item, consecutive_slots: availableSlots });
     setIsBookingModalOpen(true);
   };
 
   const handleDeleteBookingClick = (teeTime: TeeTime, booking: Booking) => {
-    setSelectedBookedTeeTime(teeTime);
+    // Find consecutive slots that belong to this booking
+    const startIndex = teeTimes[teeTime.simulator].findIndex(slot => slot.id === teeTime.id);
+    const consecutiveSlots = [];
+    
+    // Look for consecutive slots with the same booking
+    for (let i = startIndex; i < teeTimes[teeTime.simulator].length; i++) {
+      const slot = teeTimes[teeTime.simulator][i];
+      if (slot.tee_time_bookings[0]?.bookings.id === booking.id) {
+        consecutiveSlots.push(slot);
+      } else {
+        break; // Stop when we find a slot that doesn't belong to this booking
+      }
+    }
+
+    // Add consecutive slots to the teeTime object
+    const teeTimeWithSlots = {
+      ...teeTime,
+      consecutive_slots: consecutiveSlots.length > 1 ? consecutiveSlots.slice(1) : undefined
+    };
+
+    setSelectedBookedTeeTime(teeTimeWithSlots as TeeTime);
     setSelectedBooking(booking);
     setIsDeleteDialogOpen(true);
   };

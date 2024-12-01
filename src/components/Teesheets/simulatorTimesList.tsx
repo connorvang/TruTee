@@ -81,8 +81,6 @@ const Skeleton = () => (
 );
 
 export default function TeeTimesList() {
-  const [currentWeek, setCurrentWeek] = useState(47);
-  const [currentYear, setCurrentYear] = useState(2024);
   const [date, setDate] = useState<Date | undefined>(new Date());
   const [selectedDay, setSelectedDay] = useState<string>("");
   const [selectedTeeTime, setSelectedTeeTime] = useState<TeeTime | null>(null)
@@ -100,8 +98,6 @@ export default function TeeTimesList() {
   
   useEffect(() => {
     if (date) {
-      setCurrentWeek(getWeekNumber(date));
-      setCurrentYear(date.getFullYear());
       setSelectedDay(format(date, "EEE"));
     }
   }, [date]);

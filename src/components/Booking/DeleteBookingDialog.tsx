@@ -1,6 +1,6 @@
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog"
 import { useToast } from "@/hooks/use-toast"
-import { useState, useEffect } from "react"
+import { useState } from "react"
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs"
 
 interface DeleteBookingDialogProps {

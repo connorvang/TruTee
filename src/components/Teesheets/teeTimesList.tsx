@@ -20,13 +20,21 @@ import WeatherInfo from '../getWeather'
 const getWeekNumber = (date: Date): number => {
   const target = new Date(date);
   const firstDayOfYear = new Date(target.getFullYear(), 0, 1);
-  const daysSinceFirstDay = Math.floor((target.getTime() - firstDayOfYear.getTime()) / (24 * 60 * 60 * 1000));
   
-  // Adjust the days to ensure Sunday starts the week
-  const firstDayOffset = firstDayOfYear.getDay(); // 0 for Sunday, 1 for Monday, etc.
-  const adjustedDays = daysSinceFirstDay + firstDayOffset;
+  // Get the first Sunday of the year
+  const firstSunday = new Date(firstDayOfYear);
+  while (firstSunday.getDay() !== 0) {
+    firstSunday.setDate(firstSunday.getDate() + 1);
+  }
   
-  return Math.ceil(adjustedDays / 7);
+  // If the date is before the first Sunday, it's week 1
+  if (target < firstSunday) {
+    return 1;
+  }
+  
+  // Calculate the number of weeks
+  const daysSinceFirstSunday = Math.floor((target.getTime() - firstSunday.getTime()) / (24 * 60 * 60 * 1000));
+  return Math.floor(daysSinceFirstSunday / 7) + 2; // Add 2 because: +1 for zero-based to one-based, +1 for the partial first week
 };
 
 interface Booking {
@@ -144,9 +152,9 @@ export default function TeeTimesList() {
     // Clone the date to avoid modifying the original
     const date = new Date(currentDate);
     
-    // Get Monday of the current week
+    // Get Sunday of the current week
     const day = date.getDay();
-    const diff = day === 0 ? -6 : 1 - day; // Adjust to get Monday
+    const diff = -day; // Adjust to get Sunday (no need for special case now)
     const startOfWeek = new Date(date);
     startOfWeek.setDate(date.getDate() + diff);
     
@@ -181,13 +189,13 @@ export default function TeeTimesList() {
   const getDateFromDay = (dayShort: string) => {
     const targetDate = date || new Date();
     const day = targetDate.getDay();
-    const diff = day === 0 ? -6 : 1 - day; // Adjust to get Monday
+    const diff = -day; // Adjust to get Sunday
     const startOfWeek = new Date(targetDate);
     startOfWeek.setDate(targetDate.getDate() + diff);
     
     const daysMap: { [key: string]: number } = {
-      "Mon": 0, "Tue": 1, "Wed": 2, "Thu": 3, 
-      "Fri": 4, "Sat": 5, "Sun": 6
+      "Sun": 0, "Mon": 1, "Tue": 2, "Wed": 3, 
+      "Thu": 4, "Fri": 5, "Sat": 6
     };
     
     const newDate = new Date(startOfWeek);

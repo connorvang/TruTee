@@ -11,9 +11,6 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   return (
     <ClerkProvider>
       <SignedOut>
-        <div className="min-h-screen flex items-center justify-center">
-          <p>Please sign in to access this page</p>
-        </div>
       </SignedOut>
       <SignedIn>
         {children}

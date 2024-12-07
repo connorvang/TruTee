@@ -2,6 +2,9 @@ import './globals.css'
 import { Toaster } from "@/components/ui/toaster"
 import { ClerkProvider } from '@clerk/nextjs' 
 
+import { GeistSans } from 'geist/font/sans';
+import { GeistMono } from 'geist/font/mono';
+
 
 export const metadata = {
   title: "TruTee",
@@ -16,7 +19,7 @@ export default function RootLayout({
   return (
     <ClerkProvider>
     <html lang="en">
-      <body className='antialiased'>
+      <body className={`${GeistSans.variable} ${GeistMono.variable} antialiased`}>
         <div className="min-h-screen">
           {children}
         </div>

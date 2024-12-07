@@ -20,6 +20,7 @@ interface Organization {
   id: string
   name: string
   golf_course: boolean
+  image_url: string
 }
 
 export default function OrganizationPage() {
@@ -30,8 +31,10 @@ export default function OrganizationPage() {
   const { teeTimes, loading } = usePublicTeeTimes(date, id)
 
   useEffect(() => {
-    async function fetchOrganization() {
-      const { data, error } = await supabase
+    async function getOrgData() {
+      if (!id) return
+
+      const { data: orgData, error } = await supabase
         .from('organizations')
         .select('*')
         .eq('id', id)
@@ -42,12 +45,10 @@ export default function OrganizationPage() {
         return
       }
 
-      setOrganization(data)
+      setOrganization(orgData)
     }
 
-    if (id) {
-      fetchOrganization()
-    }
+    getOrgData()
   }, [id, supabase])
 
   if (!organization) {
@@ -74,7 +75,7 @@ export default function OrganizationPage() {
                 </SignUpButton>
               </SignedOut>
               <SignedIn>
-                <UserButton />
+                <UserButton showName={true} />
               </SignedIn>
             </div>
           </div>
@@ -85,7 +86,7 @@ export default function OrganizationPage() {
         <div className="w-80 flex flex-col gap-6 bg-background overflow-y-auto">
           <div className="relative">
             <Image
-              src="/golfCourse.jpg"
+              src={organization.image_url}
               alt="Golf Course"
               width={320}
               height={180}
@@ -96,9 +97,9 @@ export default function OrganizationPage() {
             </Button>
           </div>
 
-          <div>
-            <h1 className="text-xl font-semibold">{organization.name}</h1>
-            <p className="text-sm text-muted-foreground">Location</p>
+          <div className="flex flex-col gap-1">
+            <span className="text-lg font-semibold">{organization.name}</span>
+            <span className="text-sm text-muted-foreground">{organization.golf_course ? 'Golf Course' : 'Simulator Facility'}</span>
           </div>
 
           <p className="text-sm">Some random description</p>

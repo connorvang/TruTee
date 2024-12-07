@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
 import { format } from 'date-fns'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
@@ -32,6 +32,33 @@ export function BookingModal({ isOpen, onClose, teeTime, onBookingComplete }: Bo
   const [isLoading, setIsLoading] = useState(false)
   const supabase = createClientComponentClient()
   const { toast } = useToast()
+  const [selectedUserId, setSelectedUserId] = useState<string | null>(null)
+  const [users, setUsers] = useState<Array<{ id: string, full_name: string }>>([])
+  const [isNewUser, setIsNewUser] = useState(false)
+  const [newUserName, setNewUserName] = useState('')
+  const [newUserEmail, setNewUserEmail] = useState('')
+  const [newUserPhone, setNewUserPhone] = useState('')
+
+  useEffect(() => {
+    const fetchUsers = async () => {
+      const { data, error } = await supabase
+        .from('users')
+        .select('id, first_name, last_name')
+        .order('last_name')
+      
+      if (data && !error) {
+        const usersWithFullName = data.map(user => ({
+          id: user.id,
+          full_name: `${user.first_name} ${user.last_name}`.trim()
+        }))
+        setUsers(usersWithFullName)
+      }
+    }
+
+    if (isOpen) {
+      fetchUsers()
+    }
+  }, [isOpen, supabase])
 
   const handleBooking = async () => {
     if (!user) {
@@ -46,13 +73,37 @@ export function BookingModal({ isOpen, onClose, teeTime, onBookingComplete }: Bo
     try {
       setIsLoading(true)
       
+      let bookingUserId = selectedUserId
+
+      if (isNewUser) {
+        const { data: newUser, error: userError } = await supabase
+          .from('users')
+          .insert({
+            full_name: newUserName,
+            email: newUserEmail,
+            phone: newUserPhone,
+          })
+          .select('id')
+          .single()
+
+        if (userError || !newUser) {
+          throw new Error('Failed to create new user')
+        }
+
+        bookingUserId = newUser.id
+      }
+
+      if (!bookingUserId) {
+        throw new Error('No user selected')
+      }
+
       const guests = Math.max(0, numberOfSpots - 1)
 
-      // Create the booking with the Clerk user's ID
+      // First, create the booking
       const { data: newBooking, error: bookingError } = await supabase
         .from('bookings')
         .insert({
-          user_id: user.id, // Use Clerk user ID directly
+          user_id: bookingUserId,
           number_of_holes: numberOfHoles,
           has_cart: hasCart === "true",
           guests: guests,
@@ -124,6 +175,65 @@ export function BookingModal({ isOpen, onClose, teeTime, onBookingComplete }: Bo
         </DialogHeader>
 
         <div className="space-y-4 py-4">
+          <div className="space-y-2">
+            <Label>User</Label>
+            <Select
+              value={isNewUser ? "new" : selectedUserId || ""}
+              onValueChange={(value) => {
+                if (value === "new") {
+                  setIsNewUser(true)
+                  setSelectedUserId(null)
+                } else {
+                  setIsNewUser(false)
+                  setSelectedUserId(value)
+                }
+              }}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Select user" />
+              </SelectTrigger>
+              <SelectContent>
+                {users.map((user) => (
+                  <SelectItem key={user.id} value={user.id}>
+                    {user.full_name}
+                  </SelectItem>
+                ))}
+                <SelectItem value="new">New User</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          {isNewUser && (
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label>Full Name</Label>
+                <Input
+                  value={newUserName}
+                  onChange={(e) => setNewUserName(e.target.value)}
+                  placeholder="Enter full name"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Email</Label>
+                <Input
+                  type="email"
+                  value={newUserEmail}
+                  onChange={(e) => setNewUserEmail(e.target.value)}
+                  placeholder="Enter email"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Phone</Label>
+                <Input
+                  type="tel"
+                  value={newUserPhone}
+                  onChange={(e) => setNewUserPhone(e.target.value)}
+                  placeholder="Enter phone number"
+                />
+              </div>
+            </div>
+          )}
+
           <div className="space-y-2">
             <Label>Players</Label>
             <Select 

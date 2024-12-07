@@ -4,7 +4,6 @@ import { ChevronLeft, ChevronRight, ChevronDown, LandPlot, PlusCircle } from 'lu
 import { useEffect, useState } from 'react'
 import { format } from "date-fns"
 import { BookingModal } from '../Booking/simulatorBookingModal'
-import { DeleteBookingDialog } from '../Booking/DeleteBookingDialog'
 
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Button } from "@/components/ui/button"
@@ -15,6 +14,8 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { cn } from "@/lib/utils"
 import WeatherInfo from '../getWeather'
 import { usePublicSimulatorTimes } from '@/hooks/usePublicSimulatorTimes'
+import { useUser } from '@clerk/nextjs'
+import { DeleteBookingDialog } from '../Booking/DeleteBookingDialog'
 
 // Helper function to get week number
 const getWeekNumber = (date: Date): number => {
@@ -41,11 +42,6 @@ interface Booking {
   id: string;
   user_id: string;
   guests: number;
-  users: {
-    handicap: number;
-    first_name: string;
-    last_name: string;
-  }
 }
 
 interface TeeTime {
@@ -62,11 +58,6 @@ interface TeeTime {
     bookings: {
       id: string;
       user_id: string;
-      users: {
-        handicap: number;
-        first_name: string;
-        last_name: string;
-      }
     }
   }[];
 }
@@ -103,6 +94,7 @@ export default function SimulatorTimesList({ organizationId }: SimulatorTimesLis
   const [nowPosition, setNowPosition] = useState<number | null>(null);
   const [intervalMinutes, setIntervalMinutes] = useState<number>(30);
   const { teeTimes, loading: loadingTeeTimes } = usePublicSimulatorTimes(date, organizationId);
+  const { user } = useUser();
 
   useEffect(() => {
     setIntervalMinutes(30);
@@ -253,7 +245,7 @@ export default function SimulatorTimesList({ organizationId }: SimulatorTimesLis
 
   return (
     <div className="p-0">
-      <div className="flex items-center justify-between px-6 py-2 bg-background border-b border-gray-100">
+      <div className="flex items-center justify-between pb-2 bg-background border-b border-gray-100">
         <div className="flex items-center gap-4">
           <Button 
             variant="outline" 
@@ -318,7 +310,7 @@ export default function SimulatorTimesList({ organizationId }: SimulatorTimesLis
       </div>
 
       <Tabs value={selectedDay} className="w-full">
-        <TabsList className="flex mx-6 my-2">
+        <TabsList className="flex my-2">
           {weekdays.map((day) => (
             <TabsTrigger 
               key={day.dayShort} 
@@ -334,8 +326,10 @@ export default function SimulatorTimesList({ organizationId }: SimulatorTimesLis
             </TabsTrigger>
           ))}
         </TabsList>
+
+      <div className="flex flex-1 items-center flex-col justify-between px-1 py-1 bg-gray-100 rounded-lg">  
         {simulatorCount > 0 && (
-          <div className="flex pl-6 h-10 baysHeader border-y border-gray-100">
+          <div className="flex w-full pl-6 h-10 baysHeader">
             <div className="w-20 pr-4 text-sm font-small text-right"></div>
             {Object.keys(teeTimes).map((simulator, index) => (
               <div
@@ -348,7 +342,7 @@ export default function SimulatorTimesList({ organizationId }: SimulatorTimesLis
           </div>
         )}
 
-        <div className="relative timeSlots">
+        <div className="relative w-full bg-white rounded-md shadow-sm timeSlots">
           {loadingTeeTimes ? (
             <div className="flex flex-col">
               {Array.from({ length: 10 }).map((_, idx) => (
@@ -375,7 +369,6 @@ export default function SimulatorTimesList({ organizationId }: SimulatorTimesLis
               )}
             </>
           )}
-
           {Object.keys(teeTimes).length > 0 && (
             <div className="flex flex-row">
               <div className="flex flex-col w-26">
@@ -428,23 +421,26 @@ export default function SimulatorTimesList({ organizationId }: SimulatorTimesLis
                           <div className="flex-1 h-full">
                             {isBooked ? (
                               <button
-                                className="w-full h-full px-2 py-[5px] rounded-md text-white bg-gray-900 border border-gray-500 hover:bg-gray-700 flex items-start content-start min-w-0"
+                                className="w-full h-full px-2 py-[5px] rounded-md text-white bg-gray-900 border border-gray-500 hover:bg-gray-700 flex min-w-0 disabled:bg-gray-600 disabled:cursor-not-allowed disabled:hover:bg-gray-600"
                                 onClick={() => {
-                                  if (bookingData) {
+                                  if (bookingData && bookingData.user_id === user?.id) {
                                     const booking: Booking = {
                                       ...bookingData,
-                                      guests: 0, // or the appropriate number of guests
+                                      guests: 0,
                                     };
                                     handleDeleteBookingClick(item, booking);
                                   }
                                 }}
+                                disabled={bookingData.user_id !== user?.id}
                               >
-                                <span className="text-sm text-left font-medium truncate ml-2 flex-1">
-                                  {`${bookingData?.users.first_name} ${bookingData?.users.last_name} (${
-                                    bookingData?.users.handicap < 0 
-                                      ? `+${Math.abs(bookingData.users.handicap)}` 
-                                      : bookingData?.users.handicap
-                                  })`}
+                                <span className="text-sm font-medium">
+                                  {bookingData.user_id === user?.id ? (
+                                    <div className="flex flex-col items-start">
+                                      <span className="text-white">{user?.fullName}</span>
+                                    </div>
+                                  ) : (
+                                    `Booked`
+                                  )}
                                 </span>
                               </button>
                             ) : (
@@ -487,6 +483,7 @@ export default function SimulatorTimesList({ organizationId }: SimulatorTimesLis
               }}
             />
           )}
+        </div>
         </div>
       </Tabs>
     </div>

@@ -12,11 +12,6 @@ interface TeeTime {
     bookings: {
       id: string
       user_id: string
-      users: {
-        handicap: number
-        first_name: string
-        last_name: string
-      }
     }
   }[]
 }
@@ -54,12 +49,7 @@ export function usePublicSimulatorTimes(date: Date | undefined, organizationId: 
               id,
               bookings (
                 id,
-                user_id,
-                users (
-                  handicap,
-                  first_name,
-                  last_name
-                )
+                user_id
               )
             )
           `)
@@ -70,13 +60,13 @@ export function usePublicSimulatorTimes(date: Date | undefined, organizationId: 
 
         if (error) throw error
 
-        const grouped = data.reduce((acc: teeTimes, teeTime: TeeTime) => {
+        const grouped = (data || []).reduce((acc: teeTimes, teeTime: TeeTime) => {
           if (!acc[teeTime.simulator]) {
             acc[teeTime.simulator] = []
           }
           acc[teeTime.simulator].push(teeTime)
           return acc
-        }, {})
+        }, {} as teeTimes)
 
         setGroupedTeeTimes(grouped)
         setError(null)

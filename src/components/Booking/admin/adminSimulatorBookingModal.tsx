@@ -35,6 +35,12 @@ export function BookingModal({ isOpen, onClose, teeTime, onBookingComplete }: Bo
   const [isLoading, setIsLoading] = useState(false)
   const supabase = createClientComponentClient()
   const { toast } = useToast()
+  const [selectedUserId, setSelectedUserId] = useState<string | null>(null)
+  const [users, setUsers] = useState<Array<{ id: string, full_name: string }>>([])
+  const [isNewUser, setIsNewUser] = useState(false)
+  const [newUserName, setNewUserName] = useState('')
+  const [newUserEmail, setNewUserEmail] = useState('')
+  const [newUserPhone, setNewUserPhone] = useState('')
   const [selectedDuration, setSelectedDuration] = useState("30");
 
   const maxAvailableSlots = teeTime.consecutive_slots?.length || 1;
@@ -58,6 +64,28 @@ export function BookingModal({ isOpen, onClose, teeTime, onBookingComplete }: Bo
     return options;
   };
 
+  useEffect(() => {
+    const fetchUsers = async () => {
+      const { data, error } = await supabase
+        .from('users')
+        .select('id, first_name, last_name')
+        .order('last_name')
+      
+      if (data && !error) {
+        const usersWithFullName = data.map(user => ({
+          id: user.id,
+          full_name: `${user.first_name} ${user.last_name}`.trim()
+        }))
+        setUsers(usersWithFullName)
+      }
+    }
+
+    if (isOpen) {
+      fetchUsers()
+    }
+  }, [isOpen, supabase])
+
+
   const handleBooking = async () => {
     if (!user) {
       toast({
@@ -70,6 +98,30 @@ export function BookingModal({ isOpen, onClose, teeTime, onBookingComplete }: Bo
 
     try {
       setIsLoading(true)
+      
+      let bookingUserId = selectedUserId
+
+      if (isNewUser) {
+        const { data: newUser, error: userError } = await supabase
+          .from('users')
+          .insert({
+            full_name: newUserName,
+            email: newUserEmail,
+            phone: newUserPhone,
+          })
+          .select('id')
+          .single()
+
+        if (userError || !newUser) {
+          throw new Error('Failed to create new user')
+        }
+
+        bookingUserId = newUser.id
+      }
+
+      if (!bookingUserId) {
+        throw new Error('No user selected')
+      }
 
       const numberOfSlots = parseInt(selectedDuration) / 30;
       const slotsToBook = teeTime.consecutive_slots?.slice(0, numberOfSlots) || [teeTime];
@@ -77,7 +129,7 @@ export function BookingModal({ isOpen, onClose, teeTime, onBookingComplete }: Bo
       const { data: newBooking, error: bookingError } = await supabase
         .from('bookings')
         .insert({
-          user_id: user.id,
+          user_id: bookingUserId,
         })
         .select('id')
         .single();
@@ -140,13 +192,41 @@ export function BookingModal({ isOpen, onClose, teeTime, onBookingComplete }: Bo
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="bg-white dark:bg-gray-900">
         <DialogHeader>
-          <DialogTitle>Book Simulator</DialogTitle>
+          <DialogTitle>Book Tee Time</DialogTitle>
           <DialogDescription>
             {format(new Date(teeTime.start_time), 'EEEE, MMMM d, yyyy h:mm a')}
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4 py-4">
+          <div className="space-y-2">
+            <Label>User</Label>
+            <Select
+              value={isNewUser ? "new" : selectedUserId || ""}
+              onValueChange={(value) => {
+                if (value === "new") {
+                  setIsNewUser(true)
+                  setSelectedUserId(null)
+                } else {
+                  setIsNewUser(false)
+                  setSelectedUserId(value)
+                }
+              }}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Select user" />
+              </SelectTrigger>
+              <SelectContent>
+                {users.map((user) => (
+                  <SelectItem key={user.id} value={user.id}>
+                    {user.full_name}
+                  </SelectItem>
+                ))}
+                <SelectItem value="new">New User</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
           <div className="space-y-2">
             <Label>Duration</Label>
             <Select
@@ -165,6 +245,37 @@ export function BookingModal({ isOpen, onClose, teeTime, onBookingComplete }: Bo
               </SelectContent>
             </Select>
           </div>
+
+          {isNewUser && (
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label>Full Name</Label>
+                <Input
+                  value={newUserName}
+                  onChange={(e) => setNewUserName(e.target.value)}
+                  placeholder="Enter full name"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Email</Label>
+                <Input
+                  type="email"
+                  value={newUserEmail}
+                  onChange={(e) => setNewUserEmail(e.target.value)}
+                  placeholder="Enter email"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Phone</Label>
+                <Input
+                  type="tel"
+                  value={newUserPhone}
+                  onChange={(e) => setNewUserPhone(e.target.value)}
+                  placeholder="Enter phone number"
+                />
+              </div>
+            </div>
+          )}
         </div>
 
         <DialogFooter>

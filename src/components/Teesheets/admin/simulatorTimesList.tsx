@@ -3,8 +3,8 @@
 import { ChevronLeft, ChevronRight, ChevronDown, LandPlot, PlusCircle } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { format } from "date-fns"
-import { BookingModal } from '../../Booking/simulatorBookingModal'
-import { DeleteBookingDialog } from '../../Booking/DeleteBookingDialog'
+import { BookingModal } from '@/components/Booking/admin/adminSimulatorBookingModal'
+import { DeleteBookingDialog } from '@/components/Booking/DeleteBookingDialog'
 
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Button } from "@/components/ui/button"

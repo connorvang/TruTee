@@ -3,8 +3,8 @@
 import { ChevronLeft, ChevronRight, PlusCircle, Users, ChevronDown, CarFront, Circle, LandPlot, Footprints } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { format } from "date-fns"
-import { BookingModal } from '../../Booking/teetimeBookingModal'
-import { DeleteBookingDialog } from '../../Booking/DeleteBookingDialog'
+import { BookingModal } from '@/components/Booking/admin/adminTeetimeBookingModal'
+import { DeleteBookingDialog } from '@/components/Booking/DeleteBookingDialog'
 
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Button } from "@/components/ui/button"
@@ -55,6 +55,10 @@ interface TeeTime {
   start_time: string;
   end_time: string;
   price: number;
+  green_fee_18: number;
+  green_fee_9: number;
+  cart_fee_18: number;
+  cart_fee_9: number;
   available_spots: number;
   booked_spots: number;
   tee_time_bookings: {

@@ -19,7 +19,7 @@ export const sidebarConfig = {
   navMain: [
     {
       title: "Teesheets",
-      url: "/",
+      url: "/admin",
       icon: LandPlot,
       matchExact: true,
     },
@@ -57,7 +57,7 @@ export const sidebarConfig = {
   projects: [
     {
       name: "Settings",
-      url: "/settings",
+      url: "/admin/settings",
       icon: SettingsIcon,
     },
     {

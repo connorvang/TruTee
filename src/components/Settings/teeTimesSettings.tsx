@@ -91,6 +91,10 @@ export default function TeeTimeSettings() {
           interval_minutes: settingsData.interval_minutes || 10,
           booking_days_in_advance: settingsData.booking_days_in_advance || 7,
           price: settingsData.price || 69.00,
+          green_fee_18: settingsData.green_fee_18 || 50,
+          cart_fee_18: settingsData.cart_fee_18 || 20,
+          green_fee_9: settingsData.green_fee_9 || 30,
+          cart_fee_9: settingsData.cart_fee_9 || 10,
         };
         setSettings(loadedSettings);
         setPriceInput(settingsData.price.toFixed(2));
@@ -185,6 +189,10 @@ export default function TeeTimeSettings() {
               available_spots: 4,
               booked_spots: 0,
               simulator: null,
+              green_fee_18: settings.green_fee_18,
+              cart_fee_18: settings.cart_fee_18,
+              green_fee_9: settings.green_fee_9,
+              cart_fee_9: settings.cart_fee_9,
               price: parseFloat(priceInput),
               created_at: new Date().toISOString(),
               updated_at: new Date().toISOString()
@@ -239,6 +247,10 @@ export default function TeeTimeSettings() {
         last_tee_time: `${settings.last_tee_time}:00${tzString}`,
         booking_days_in_advance: settings.booking_days_in_advance,
         price: price,
+        green_fee_18: settings.green_fee_18,
+        cart_fee_18: settings.cart_fee_18,
+        green_fee_9: settings.green_fee_9,
+        cart_fee_9: settings.cart_fee_9,
         number_of_simulators: settings.number_of_simulators, // Ensure this is included
         updated_at: new Date().toISOString(),
       };

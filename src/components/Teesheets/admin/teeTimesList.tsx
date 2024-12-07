@@ -3,8 +3,8 @@
 import { ChevronLeft, ChevronRight, PlusCircle, Users, ChevronDown, CarFront, Circle, LandPlot, Footprints } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { format } from "date-fns"
-import { BookingModal } from '../Booking/teetimeBookingModal'
-import { DeleteBookingDialog } from '../Booking/DeleteBookingDialog'
+import { BookingModal } from '@/components/Booking/admin/adminTeetimeBookingModal'
+import { DeleteBookingDialog } from '@/components/Booking/DeleteBookingDialog'
 
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Button } from "@/components/ui/button"
@@ -13,8 +13,8 @@ import { Breadcrumb, BreadcrumbItem, BreadcrumbList, BreadcrumbPage, BreadcrumbS
 import { Calendar } from "@/components/ui/calendar"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { cn } from "@/lib/utils"
-import { useTeeTimes } from '@/hooks/useTeeTimes'
-import WeatherInfo from '../getWeather'
+import { useTeeTimes } from '@/hooks/admin/useTeeTimes'
+import WeatherInfo from '../../getWeather'
 
 // Helper function to get week number
 const getWeekNumber = (date: Date): number => {
@@ -55,6 +55,10 @@ interface TeeTime {
   start_time: string;
   end_time: string;
   price: number;
+  green_fee_18: number;
+  green_fee_9: number;
+  cart_fee_18: number;
+  cart_fee_9: number;
   available_spots: number;
   booked_spots: number;
   tee_time_bookings: {
@@ -216,7 +220,7 @@ export default function TeeTimesList() {
 
   return (
     <div className="p-0">
-      <div className="flex items-center justify-between px-6 py-2 bg-background border-b border-gray-100">
+      <div className="flex items-center justify-between px-6 pb-2 bg-background border-b border-gray-100">
         <div className="flex items-center gap-4">
           <Button variant="outline" 
             className="h-8" 

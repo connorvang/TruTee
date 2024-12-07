@@ -3,8 +3,8 @@
 import { ChevronLeft, ChevronRight, ChevronDown, LandPlot, PlusCircle } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { format } from "date-fns"
-import { BookingModal } from '../Booking/simulatorBookingModal'
-import { DeleteBookingDialog } from '../Booking/DeleteBookingDialog'
+import { BookingModal } from '@/components/Booking/admin/adminSimulatorBookingModal'
+import { DeleteBookingDialog } from '@/components/Booking/DeleteBookingDialog'
 
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Button } from "@/components/ui/button"
@@ -13,8 +13,8 @@ import { Breadcrumb, BreadcrumbItem, BreadcrumbList, BreadcrumbPage, BreadcrumbS
 import { Calendar } from "@/components/ui/calendar"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { cn } from "@/lib/utils"
-import WeatherInfo from '../getWeather'
-import { useSimulatorTimes } from '@/hooks/useSimulatorTimes'
+import WeatherInfo from '../../getWeather'
+import { useSimulatorTimes } from '@/hooks/admin/useSimulatorTimes'
 
 // Helper function to get week number
 const getWeekNumber = (date: Date): number => {
@@ -88,7 +88,8 @@ const Skeleton = () => (
   </div>
 );
 
-export default function TeeTimesList() {
+
+export default function SimulatorTimesList() {
   const [date, setDate] = useState<Date | undefined>(new Date());
   const [selectedDay, setSelectedDay] = useState<string>("");
   const [selectedTeeTime, setSelectedTeeTime] = useState<TeeTime | null>(null)

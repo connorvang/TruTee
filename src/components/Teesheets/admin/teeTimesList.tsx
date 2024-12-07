@@ -220,7 +220,7 @@ export default function TeeTimesList() {
 
   return (
     <div className="p-0">
-      <div className="flex items-center justify-between px-6 pb-2 bg-background border-b border-gray-100">
+      <div className="flex items-center justify-between px-6 py-2 bg-background border-b border-gray-100">
         <div className="flex items-center gap-4">
           <Button variant="outline" 
             className="h-8" 

@@ -4,6 +4,7 @@ import { ChevronLeft, ChevronRight, PlusCircle, Users, ChevronDown, CarFront, Ci
 import { useEffect, useState } from 'react'
 import { format } from "date-fns"
 import { BookingModal } from '../Booking/teetimeBookingModal'
+import { useAuth, SignInButton, SignedIn, SignedOut } from "@clerk/nextjs";
 
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Button } from "@/components/ui/button"
@@ -74,6 +75,7 @@ export default function TeeTimesList({ organizationId }: TeeTimesListProps) {
   const [selectedTeeTime, setSelectedTeeTime] = useState<TeeTime | null>(null)
   const [isBookingModalOpen, setIsBookingModalOpen] = useState(false)
   const { teeTimes, loading: loadingTeeTimes } = usePublicTeeTimes(date, organizationId)
+  const { isSignedIn } = useAuth();
 
 
 
@@ -140,6 +142,13 @@ export default function TeeTimesList({ organizationId }: TeeTimesListProps) {
   };
 
   const handleBookingClick = (item: TeeTime) => {
+    if (!isSignedIn) {
+      // This will trigger Clerk's modal
+      const signIn = document.querySelector('[data-clerk-sign-in]');
+      (signIn as HTMLElement)?.click();
+      return;
+    }
+    
     setSelectedTeeTime(item);
     setIsBookingModalOpen(true);
   };
@@ -247,40 +256,59 @@ export default function TeeTimesList({ organizationId }: TeeTimesListProps) {
           ) : (
             <>
 
-              {teeTimes.map((item) => {
-                const availableSpots = 4 - item.booked_spots;
-                const isAvailable = availableSpots > 0;
-
-                return (
-                  <div key={item.id} className="flex items-center border-b px-6 py-2 border-gray-100">
-                    <div className="w-20 pr-4 text-sm font-medium text-right">
-                      {format(new Date(item.start_time), 'h:mm a')}
-                    </div>
-                    <div className="flex-1 flex justify-between items-center">
-                      <div className="flex items-center gap-4">
-                        <span className="flex items-center justify-end gap-2 w-full px-4 text-sm text-black">
-                        <Users size={16} /> {isAvailable ? `${availableSpots} players` : 'Fully booked'}
-                        </span>
+              {teeTimes
+                .filter(item => item.available_spots > 0)
+                .map((item) => {
+                  const availableSpots = 4 - item.booked_spots;
+                  return (
+                    <div key={item.id}>
+                    <SignedIn>
+                    <Button variant="ghost" size="lg" className="flex w-full items-center rounded-none border-b px-6 py-4 border-gray-100 font-normal" onClick={() => handleBookingClick(item)}>
+                      <div className="w-20 pr-4 text-sm font-medium text-right">
+                        {format(new Date(item.start_time), 'h:mm a')}
                       </div>
+                      <div className="flex-1 flex justify-between items-center">
+                        <div className="flex items-center gap-4">
+                          <span className="flex items-center justify-end gap-2 w-full px-4 text-sm text-black">
+                            <Users size={16} /> {availableSpots} players
+                          </span>
+                        </div>
+                      </div>
+                      <div className="flex items-center justify-end gap-2 w-32 px-4 text-sm text-black text-right">
+                        <CarFront size={16} /> ${(item.cart_fee_18 || 0).toFixed(2)}
+                      </div>
+                      <div className="flex items-center justify-end gap-2 w-32 px-4 text-sm text-black text-right">
+                        <FlagIcon size={16} /> ${(item.green_fee_18 || 0).toFixed(2)}
+                      </div>
+                    </Button>
+                    </SignedIn>
+                    
+                    <SignedOut>
+                      <SignInButton mode="modal">
+                      <Button variant="ghost" size="lg" className="flex w-full items-center rounded-none border-b px-6 py-4 border-gray-100 font-normal" onClick={() => handleBookingClick(item)}>
+                      <div className="w-20 pr-4 text-sm font-medium text-right">
+                        {format(new Date(item.start_time), 'h:mm a')}
+                      </div>
+                      <div className="flex-1 flex justify-between items-center">
+                        <div className="flex items-center gap-4">
+                          <span className="flex items-center justify-end gap-2 w-full px-4 text-sm text-black">
+                            <Users size={16} /> {availableSpots} players
+                          </span>
+                        </div>
+                      </div>
+                      <div className="flex items-center justify-end gap-2 w-32 px-4 text-sm text-black text-right">
+                        <CarFront size={16} /> ${(item.cart_fee_18 || 0).toFixed(2)}
+                      </div>
+                      <div className="flex items-center justify-end gap-2 w-32 px-4 text-sm text-black text-right">
+                        <FlagIcon size={16} /> ${(item.green_fee_18 || 0).toFixed(2)}
+                      </div>
+                    </Button>
+                      </SignInButton>
+                    </SignedOut>
                     </div>
-                    <div className="flex items-center justify-end gap-2 w-32 px-4 text-sm text-black text-right">
-                      <CarFront size={16} /> ${(item.cart_fee_18 || 0).toFixed(2)}
-                    </div>
-                    <div className="flex items-center justify-end gap-2 w-32 px-4 text-sm text-black text-right">
-                      <FlagIcon size={16} /> ${(item.green_fee_18 || 0).toFixed(2)}
-                    </div>
-                    <div className="flex-1 max-w-20 px-4 mr-4 text-sm text-black text-right">
-                    <Button
-                          size="sm"
-                          variant={"outline"}
-                          onClick={() => handleBookingClick(item)}
-                        >
-                          Book now
-                        </Button>
-                    </div>
-                  </div>
-                );
-              })}
+
+                  );
+                })}
             </>
           )}
 

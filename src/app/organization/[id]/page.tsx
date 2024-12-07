@@ -67,10 +67,10 @@ export default function OrganizationPage() {
             </div>
             <div className="flex items-center gap-2">
               <SignedOut>
-                <SignInButton>
+                <SignInButton mode="modal">
                   <Button variant="outline" size="sm">Sign in</Button>
                 </SignInButton>
-            <SignUpButton>
+            <SignUpButton mode="modal">
                   <Button variant="default" size="sm">Sign up</Button>
                 </SignUpButton>
               </SignedOut>

@@ -1,8 +1,6 @@
-import Link from 'next/link'
 import './globals.css'
 import { Toaster } from "@/components/ui/toaster"
-import { Button } from '@/components/ui/button'
-import { ClerkProvider, SignInButton, SignUpButton } from '@clerk/nextjs' 
+import { ClerkProvider } from '@clerk/nextjs' 
 
 
 export const metadata = {

@@ -44,32 +44,6 @@ export default function PublicPortal() {
 
 
   return (
-    <>
-      <header className="border-b border-gray-100 h-16">
-        <div className="px-4 w-full max-w-[1920px] mx-auto">
-          <div className="h-16 flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Link href="/" className="font-semibold text-xl">
-                <img src="/trutee_logo.svg" alt="TruTee" width={100} height={32} />
-              </Link>
-            </div>
-            <div className="flex items-center gap-2">
-              <SignedOut>
-                <SignInButton mode="modal">
-                  <Button variant="outline" size="sm">Sign in</Button>
-                </SignInButton>
-            <SignUpButton mode="modal">
-              <Button variant="default" size="sm">Sign up</Button>
-              </SignUpButton>
-              </SignedOut>
-              <SignedIn>
-                <UserButton showName={true} />
-              </SignedIn>
-            </div>
-          </div>
-        </div>
-      </header>
-
       <main className="w-full max-w-[1920px] mx-auto px-4 py-8">
         <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-6">
           {organizations.map((org) => (
@@ -99,6 +73,5 @@ export default function PublicPortal() {
           ))}
         </div>
       </main>
-    </>
   )
 }

@@ -1,6 +1,7 @@
 "use client"
 
-import { ChevronLeft, ChevronRight, PlusCircle, Users, ChevronDown, CarFront, Circle, LandPlot, Footprints, FlagIcon } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Users, ChevronDown, CarFront, LandPlot, FlagIcon, Icon } from 'lucide-react'
+import { golfDriver } from '@lucide/lab'
 import { useEffect, useState } from 'react'
 import { format } from "date-fns"
 import { BookingModal } from '../Booking/teetimeBookingModal'
@@ -278,7 +279,7 @@ export default function TeeTimesList({ organizationId }: TeeTimesListProps) {
                         <CarFront size={16} /> ${(item.cart_fee_18 || 0).toFixed(2)}
                       </div>
                       <div className="flex items-center justify-end gap-2 w-32 px-4 text-sm text-black text-right">
-                        <FlagIcon size={16} /> ${(item.green_fee_18 || 0).toFixed(2)}
+                      <Icon iconNode={golfDriver} /> ${(item.green_fee_18 || 0).toFixed(2)}
                       </div>
                     </Button>
                     </SignedIn>

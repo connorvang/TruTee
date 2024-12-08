@@ -5,8 +5,8 @@ import TeeTimeSettings from "@/components/Settings/teeTimesSettings"
 import {
   Breadcrumb,
   BreadcrumbItem,
-  BreadcrumbLink,
   BreadcrumbList,
+  BreadcrumbPage,
 } from "@/components/ui/breadcrumb"
 import { Separator } from "@/components/ui/separator"
 import {
@@ -37,9 +37,9 @@ export default function SettingsPage() {
             <Breadcrumb>
               <BreadcrumbList>
                 <BreadcrumbItem className="hidden md:block">
-                  <BreadcrumbLink href="/settings">
+                  <BreadcrumbPage>
                     Settings
-                  </BreadcrumbLink>
+                  </BreadcrumbPage>
                 </BreadcrumbItem>
               </BreadcrumbList>
             </Breadcrumb>

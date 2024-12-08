@@ -3,6 +3,7 @@ import {
   ChartBar,
   CircleDollarSign,
   HelpCircle,
+  HomeIcon,
   LandPlot,
   MessagesSquare,
   SettingsIcon,
@@ -64,6 +65,11 @@ export const sidebarConfig = {
       name: "Help",
       url: "#",
       icon: HelpCircle,
+    },
+    {
+      name: "User portal",
+      url: "/",
+      icon: HomeIcon,
     },
   ],
 } as const 

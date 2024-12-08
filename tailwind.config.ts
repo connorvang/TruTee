@@ -7,10 +7,10 @@ const config: Config = {
   ],
   theme: {
   	extend: {
-		fontFamily: {
-			sans: ['var(--font-geist-sans)'],
-			mono: ['var(--font-geist-mono)'],
-		},
+  		fontFamily: {
+  			sans: ['var(--font-geist-sans)'],
+  			mono: ['var(--font-geist-mono)']
+  		},
   		colors: {
   			background: 'hsl(var(--background))',
   			foreground: 'hsl(var(--foreground))',
@@ -68,10 +68,10 @@ const config: Config = {
   			md: 'calc(var(--radius) - 2px)',
   			sm: 'calc(var(--radius) - 4px)'
   		},
-		  height: {
-			'24': '6rem',
-			'128': '32rem',
-		  }
+  		height: {
+  			'24': '6rem',
+  			'128': '32rem'
+  		}
   	}
   },
   plugins: [require("tailwindcss-animate")],

@@ -1,6 +1,6 @@
 "use client"
 
-import { ChevronLeft, ChevronRight, ChevronDown, LandPlot, PlusCircle } from 'lucide-react'
+import { ChevronLeft, ChevronRight, ChevronDown, LandPlot, PlusCircle, Lock } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { format } from "date-fns"
 import { BookingModal } from '../Booking/simulatorBookingModal'
@@ -167,7 +167,9 @@ export default function SimulatorTimesList({ organizationId }: SimulatorTimesLis
   const handlePreviousWeek = () => {
     if (date) {
       const newDate = new Date(date);
-      newDate.setDate(date.getDate() - 7);
+      const day = newDate.getDay();
+      const daysSinceLastSunday = day === 0 ? 7 : day; // Calculate days since last Sunday
+      newDate.setDate(newDate.getDate() - daysSinceLastSunday - 7); // Move to the previous week's Sunday
       setDate(newDate);
     }
   };
@@ -175,7 +177,9 @@ export default function SimulatorTimesList({ organizationId }: SimulatorTimesLis
   const handleNextWeek = () => {
     if (date) {
       const newDate = new Date(date);
-      newDate.setDate(date.getDate() + 7);
+      const day = newDate.getDay();
+      const daysUntilNextMonday = (7 - day) % 7 || 7; // Calculate days until next Monday
+      newDate.setDate(newDate.getDate() + daysUntilNextMonday);
       setDate(newDate);
     }
   };
@@ -242,6 +246,8 @@ export default function SimulatorTimesList({ organizationId }: SimulatorTimesLis
   };
 
   const simulatorCount = Object.keys(teeTimes).length;
+
+  const currentDateTime = new Date();
 
   return (
     <div className="p-0">
@@ -399,6 +405,10 @@ export default function SimulatorTimesList({ organizationId }: SimulatorTimesLis
                       const bookingData = item.tee_time_bookings[0]?.bookings;
                       const isBooked = bookingData !== undefined;
 
+                      // Check if the tee time is more than 30 minutes in the past
+  const startTime = new Date(item.start_time);
+  const isPast = (currentDateTime.getTime() - startTime.getTime()) > 30 * 60 * 1000;
+
                       // Check for consecutive bookings
                       if (isBooked) {
                         let consecutiveCount = 1;
@@ -421,7 +431,7 @@ export default function SimulatorTimesList({ organizationId }: SimulatorTimesLis
                           <div className="flex-1 h-full">
                             {isBooked ? (
                               <button
-                                className="w-full h-full px-2 py-[5px] rounded-md text-white bg-gray-900 border border-gray-500 hover:bg-gray-700 flex min-w-0 disabled:bg-gray-600 disabled:cursor-not-allowed disabled:hover:bg-gray-600"
+                                className={`w-full h-full px-2 py-[5px] rounded-md text-white bg-gray-900 border border-gray-500 hover:bg-gray-700 flex min-w-0 disabled:bg-gray-600 disabled:cursor-not-allowed disabled:hover:bg-gray-600 ${isPast ? 'bg-gray-300 cursor-not-allowed' : ''}`}
                                 onClick={() => {
                                   if (bookingData && bookingData.user_id === user?.id) {
                                     const booking: Booking = {
@@ -431,7 +441,7 @@ export default function SimulatorTimesList({ organizationId }: SimulatorTimesLis
                                     handleDeleteBookingClick(item, booking);
                                   }
                                 }}
-                                disabled={bookingData.user_id !== user?.id}
+                                disabled={bookingData.user_id !== user?.id || isPast}
                               >
                                 <span className="text-sm font-medium">
                                   {bookingData.user_id === user?.id ? (
@@ -445,10 +455,15 @@ export default function SimulatorTimesList({ organizationId }: SimulatorTimesLis
                               </button>
                             ) : (
                               <button
-                                className="w-full h-full flex items-center justify-center rounded-md border border-gray-200 bg-gray-100 hover:bg-gray-200"
+                                className={`w-full h-full flex items-center justify-center rounded-md border border-gray-200 bg-gray-100 ${isPast ? 'bg-gray-100 cursor-not-allowed hover:none' : 'hover:bg-gray-200'}`}
                                 onClick={() => handleBookingClick(item)}
+                                disabled={isPast}
                               >
-                                <PlusCircle className="text-gray-500" size={16} />
+                                {isPast ? (
+                                  <Lock className="text-gray-300" size={16} />
+                                ) : (
+                                  <PlusCircle className="text-gray-500" size={16} />
+                                )}
                               </button>
                             )}
                           </div>

@@ -16,11 +16,50 @@ import { SignedOut } from '@clerk/nextjs'
 import { SignedIn } from '@clerk/nextjs'
 import { UserButton } from '@clerk/nextjs'
 import Link from 'next/link'
+import { Skeleton } from "@/components/ui/skeleton"
+
 interface Organization {
   id: string
   name: string
   golf_course: boolean
   image_url: string
+}
+
+const OrganizationSkeleton = () => {
+  return (
+    <div className="min-h-screen flex flex-col md:flex-row">
+
+      <div className="flex-1 flex py-8 px-4 gap-8 w-full max-w-[1920px] mx-auto">
+        <div className="w-80 flex flex-col gap-6 bg-background overflow-y-auto">
+          <Skeleton className="w-full h-48 rounded-lg" />
+          
+          <div className="flex flex-col gap-1">
+            <Skeleton className="h-7 w-48" />
+            <Skeleton className="h-5 w-32" />
+          </div>
+
+          <Skeleton className="h-20 w-full" />
+
+          <Separator />
+
+          <div>
+            <Skeleton className="h-6 w-24 mb-4" />
+            <div className="space-y-2">
+              <Skeleton className="h-4 w-full" />
+              <Skeleton className="h-4 w-3/4" />
+              <Skeleton className="h-4 w-1/2" />
+            </div>
+          </div>
+        </div>
+
+        <div className="flex-1">
+          <div className="space-y-4">
+            <Skeleton className="h-[500px] w-full" />
+          </div>
+        </div>
+      </div>
+    </div>
+  )
 }
 
 export default function OrganizationPage() {
@@ -52,35 +91,11 @@ export default function OrganizationPage() {
   }, [id, supabase])
 
   if (!organization) {
-    return <div>Loading...</div>
+    return <OrganizationSkeleton />
   }
 
   return (
     <div className="min-h-screen flex flex-col">
-      <header className="border-b h-16">
-        <div className="px-4 w-full max-w-[1920px] mx-auto">
-          <div className="h-16 flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Link href="/" className="font-semibold text-xl">
-                <img src="/trutee_logo.svg" alt="TruTee" width={100} height={32} />
-              </Link>
-            </div>
-            <div className="flex items-center gap-2">
-              <SignedOut>
-                <SignInButton mode="modal">
-                  <Button variant="outline" size="sm">Sign in</Button>
-                </SignInButton>
-            <SignUpButton mode="modal">
-                  <Button variant="default" size="sm">Sign up</Button>
-                </SignUpButton>
-              </SignedOut>
-              <SignedIn>
-                <UserButton showName={true} />
-              </SignedIn>
-            </div>
-          </div>
-        </div>
-      </header>
 
       <div className="flex-1 flex py-8 px-4 gap-8 w-full max-w-[1920px] mx-auto">
         <div className="w-80 flex flex-col gap-6 bg-background overflow-y-auto">

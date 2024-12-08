@@ -1,6 +1,7 @@
 "use client"
 
-import { ChevronLeft, ChevronRight, PlusCircle, Users, ChevronDown, CarFront, Circle, LandPlot, Footprints, FlagIcon } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Users, ChevronDown, CarFront, LandPlot, FlagIcon, Icon } from 'lucide-react'
+import { golfDriver } from '@lucide/lab'
 import { useEffect, useState } from 'react'
 import { format } from "date-fns"
 import { BookingModal } from '../Booking/teetimeBookingModal'
@@ -111,7 +112,9 @@ export default function TeeTimesList({ organizationId }: TeeTimesListProps) {
   const handlePreviousWeek = () => {
     if (date) {
       const newDate = new Date(date);
-      newDate.setDate(date.getDate() - 7);
+      const day = newDate.getDay();
+      const daysSinceLastSunday = day === 0 ? 7 : day; // Calculate days since last Sunday
+      newDate.setDate(newDate.getDate() - daysSinceLastSunday - 7); // Move to the previous week's Sunday
       setDate(newDate);
     }
   };
@@ -119,7 +122,9 @@ export default function TeeTimesList({ organizationId }: TeeTimesListProps) {
   const handleNextWeek = () => {
     if (date) {
       const newDate = new Date(date);
-      newDate.setDate(date.getDate() + 7);
+      const day = newDate.getDay();
+      const daysUntilNextMonday = (7 - day) % 7 || 7; // Calculate days until next Monday
+      newDate.setDate(newDate.getDate() + daysUntilNextMonday);
       setDate(newDate);
     }
   };
@@ -153,6 +158,7 @@ export default function TeeTimesList({ organizationId }: TeeTimesListProps) {
     setIsBookingModalOpen(true);
   };
 
+  const currentDateTime = new Date();
 
   return (
     <div className="p-0">
@@ -248,67 +254,65 @@ export default function TeeTimesList({ organizationId }: TeeTimesListProps) {
                 <Skeleton key={idx} />
               ))}
             </div>
-          ) : teeTimes.length === 0 ? (
-            <div className="flex flex-col items-center justify-center gap-4 py-16 text-gray-500">
-              <LandPlot size={32} />
-              No tee times available for this date.
-            </div>
           ) : (
             <>
-
               {teeTimes
-                .filter(item => item.available_spots > 0)
+                .filter(item => item.available_spots > 0 && new Date(item.start_time) > currentDateTime)
                 .map((item) => {
                   const availableSpots = 4 - item.booked_spots;
                   return (
                     <div key={item.id}>
-                    <SignedIn>
-                    <Button variant="ghost" size="lg" className="flex w-full items-center rounded-none border-b px-6 py-4 border-gray-100 font-normal" onClick={() => handleBookingClick(item)}>
-                      <div className="w-20 pr-4 text-sm font-medium text-right">
-                        {format(new Date(item.start_time), 'h:mm a')}
-                      </div>
-                      <div className="flex-1 flex justify-between items-center">
-                        <div className="flex items-center gap-4">
-                          <span className="flex items-center justify-end gap-2 w-full px-4 text-sm text-black">
-                            <Users size={16} /> {availableSpots} players
-                          </span>
-                        </div>
-                      </div>
-                      <div className="flex items-center justify-end gap-2 w-32 px-4 text-sm text-black text-right">
-                        <CarFront size={16} /> ${(item.cart_fee_18 || 0).toFixed(2)}
-                      </div>
-                      <div className="flex items-center justify-end gap-2 w-32 px-4 text-sm text-black text-right">
-                        <FlagIcon size={16} /> ${(item.green_fee_18 || 0).toFixed(2)}
-                      </div>
-                    </Button>
-                    </SignedIn>
-                    
-                    <SignedOut>
-                      <SignInButton mode="modal">
-                      <Button variant="ghost" size="lg" className="flex w-full items-center rounded-none border-b px-6 py-4 border-gray-100 font-normal" onClick={() => handleBookingClick(item)}>
-                      <div className="w-20 pr-4 text-sm font-medium text-right">
-                        {format(new Date(item.start_time), 'h:mm a')}
-                      </div>
-                      <div className="flex-1 flex justify-between items-center">
-                        <div className="flex items-center gap-4">
-                          <span className="flex items-center justify-end gap-2 w-full px-4 text-sm text-black">
-                            <Users size={16} /> {availableSpots} players
-                          </span>
-                        </div>
-                      </div>
-                      <div className="flex items-center justify-end gap-2 w-32 px-4 text-sm text-black text-right">
-                        <CarFront size={16} /> ${(item.cart_fee_18 || 0).toFixed(2)}
-                      </div>
-                      <div className="flex items-center justify-end gap-2 w-32 px-4 text-sm text-black text-right">
-                        <FlagIcon size={16} /> ${(item.green_fee_18 || 0).toFixed(2)}
-                      </div>
-                    </Button>
-                      </SignInButton>
-                    </SignedOut>
+                      <SignedIn>
+                        <Button variant="ghost" size="lg" className="flex w-full items-center rounded-none border-b px-6 py-4 border-gray-100 font-normal" onClick={() => handleBookingClick(item)}>
+                          <div className="w-20 pr-4 text-sm font-medium text-right">
+                            {format(new Date(item.start_time), 'h:mm a')}
+                          </div>
+                          <div className="flex-1 flex justify-between items-center">
+                            <div className="flex items-center gap-4">
+                              <span className="flex items-center justify-end gap-2 w-full px-4 text-sm text-black">
+                                <Users size={16} /> {availableSpots} players
+                              </span>
+                            </div>
+                          </div>
+                          <div className="flex items-center justify-end gap-2 w-32 px-4 text-sm text-black text-right">
+                            <CarFront size={16} /> ${(item.cart_fee_18 || 0).toFixed(2)}
+                          </div>
+                          <div className="flex items-center justify-end gap-2 w-32 px-4 text-sm text-black text-right">
+                            <Icon iconNode={golfDriver} /> ${(item.green_fee_18 || 0).toFixed(2)}
+                          </div>
+                        </Button>
+                      </SignedIn>
+                      <SignedOut>
+                        <SignInButton mode="modal">
+                          <Button variant="ghost" size="lg" className="flex w-full items-center rounded-none border-b px-6 py-4 border-gray-100 font-normal" onClick={() => handleBookingClick(item)}>
+                            <div className="w-20 pr-4 text-sm font-medium text-right">
+                              {format(new Date(item.start_time), 'h:mm a')}
+                            </div>
+                            <div className="flex-1 flex justify-between items-center">
+                              <div className="flex items-center gap-4">
+                                <span className="flex items-center justify-end gap-2 w-full px-4 text-sm text-black">
+                                  <Users size={16} /> {availableSpots} players
+                                </span>
+                              </div>
+                            </div>
+                            <div className="flex items-center justify-end gap-2 w-32 px-4 text-sm text-black text-right">
+                              <CarFront size={16} /> ${(item.cart_fee_18 || 0).toFixed(2)}
+                            </div>
+                            <div className="flex items-center justify-end gap-2 w-32 px-4 text-sm text-black text-right">
+                              <FlagIcon size={16} /> ${(item.green_fee_18 || 0).toFixed(2)}
+                            </div>
+                          </Button>
+                        </SignInButton>
+                      </SignedOut>
                     </div>
-
                   );
                 })}
+              {teeTimes.filter(item => item.available_spots > 0 && new Date(item.start_time) > currentDateTime).length === 0 && (
+                <div className="flex flex-col items-center justify-center gap-4 py-16 text-gray-500">
+                  <LandPlot size={32} />
+                  No tee times available for this date.
+                </div>
+              )}
             </>
           )}
 

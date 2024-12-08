@@ -95,7 +95,7 @@ export default function WeatherInfo() {
   }, []);
 
   return (
-    <div className="flex items-center gap-2">
+    <div className="items-center gap-2 hidden sm:flex">
       <span className="flex items-center gap-1 text-lg font-semibold">
         {getWeatherIcon(weather.weatherCode, weather.isDay)}
         {weather.current}°

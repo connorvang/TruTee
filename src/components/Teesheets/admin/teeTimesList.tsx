@@ -355,7 +355,7 @@ export default function TeeTimesList() {
                     {format(new Date(item.start_time), 'h:mm a')}
                   </div>
                   <div className="w-20 pr-4 text-sm font-small text-gray-600 text-right">
-                    ${item.price.toFixed(2)}
+                    ${item.green_fee_18.toFixed(2)}
                   </div>
                   <div className="grid grid-cols-4 gap-2 flex-1">
                     {(() => {

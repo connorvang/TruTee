@@ -95,33 +95,27 @@ export default function OrganizationPage() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col">
 
-      <div className="flex-1 flex py-8 px-4 gap-8 w-full max-w-[1920px] mx-auto">
-        <div className="w-80 flex flex-col gap-6 bg-background overflow-y-auto">
-          <div className="relative">
+      <div className="flex-1 flex flex-col lg:flex-row py-8 px-4 gap-8 w-full max-w-[1920px] mx-auto">
+        <div className="flex flex-col md:flow-col gap-6 bg-background overflow-y-auto">
             <Image
               src={organization.image_url}
               alt="Golf Course"
               width={320}
               height={180}
-              className="w-full h-48 object-cover rounded-lg"
+              className="w-full h-48 object-cover flex rounded-lg"
             />
-            <Button size="icon" variant="secondary" className="absolute top-4 right-4">
-              <Heart className="h-4 w-4" />
-            </Button>
-          </div>
 
           <div className="flex flex-col gap-1">
             <span className="text-lg font-semibold">{organization.name}</span>
             <span className="text-sm text-muted-foreground">{organization.golf_course ? 'Golf Course' : 'Simulator Facility'}</span>
           </div>
 
-          <p className="text-sm">Some random description</p>
+          <p className="text-sm hidden lg:block">Some random description</p>
 
           <Separator />
 
-          <div>
+          <div className="hidden lg:block">
             <h2 className="font-semibold mb-4">Details</h2>
             <div className="space-y-2 text-sm">
               {/* Add your organization details here */}
@@ -140,6 +134,5 @@ export default function OrganizationPage() {
           
         </div>
       </div>
-    </div>
   )
 }

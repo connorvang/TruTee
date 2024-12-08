@@ -172,7 +172,9 @@ export default function SimulatorTimesList() {
   const handlePreviousWeek = () => {
     if (date) {
       const newDate = new Date(date);
-      newDate.setDate(date.getDate() - 7);
+      const day = newDate.getDay();
+      const daysSinceLastSunday = day === 0 ? 7 : day; // Calculate days since last Sunday
+      newDate.setDate(newDate.getDate() - daysSinceLastSunday - 7); // Move to the previous week's Sunday
       setDate(newDate);
     }
   };
@@ -180,7 +182,9 @@ export default function SimulatorTimesList() {
   const handleNextWeek = () => {
     if (date) {
       const newDate = new Date(date);
-      newDate.setDate(date.getDate() + 7);
+      const day = newDate.getDay();
+      const daysUntilNextMonday = (7 - day) % 7 || 7; // Calculate days until next Monday
+      newDate.setDate(newDate.getDate() + daysUntilNextMonday);
       setDate(newDate);
     }
   };

@@ -32,14 +32,20 @@ export default function RootLayout({
             </div>
             <div className="flex items-center gap-2">
               <SignedOut>
+                <Button variant="ghost" size="sm" asChild>
+                  <Link href="/admin">Admin</Link>
+                </Button>
                 <SignInButton mode="modal">
                   <Button variant="outline" size="sm">Sign in</Button>
                 </SignInButton>
-            <SignUpButton mode="modal">
+                <SignUpButton mode="modal">
               <Button variant="default" size="sm">Sign up</Button>
               </SignUpButton>
               </SignedOut>
               <SignedIn>
+                <Button variant="ghost" size="sm" asChild>
+                  <Link href="/admin">Admin</Link>
+                </Button>
                 <UserButton showName={true} />
               </SignedIn>
             </div>

@@ -1,28 +1,18 @@
-"use client"
-
-import { useEffect, useState } from 'react'
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
-import { useParams } from 'next/navigation'
-import { Button } from "@/components/ui/button"
 import { Separator } from "@/components/ui/separator"
-import {  Heart } from 'lucide-react'
-import { SignInButton } from '@clerk/nextjs'
-import { usePublicTeeTimes } from '@/hooks/usePublicTeeTimes'
 import Image from 'next/image'
 import TeeTimesList from '@/components/Teesheets/publicTeeTimesList'
 import SimulatorTimesList from '@/components/Teesheets/publicSimulatorTimesList'
-import { SignUpButton } from '@clerk/nextjs'
-import { SignedOut } from '@clerk/nextjs'
-import { SignedIn } from '@clerk/nextjs'
-import { UserButton } from '@clerk/nextjs'
-import Link from 'next/link'
 import { Skeleton } from "@/components/ui/skeleton"
+import { getSimulatorTimes } from '@/actions/getSimulatorTimes'
+import { createServerComponentClient } from '@supabase/auth-helpers-nextjs'
+import { cookies } from 'next/headers'
+import { getTeeTimes } from '@/actions/getTeeTimes'
 
-interface Organization {
-  id: string
-  name: string
-  golf_course: boolean
-  image_url: string
+
+interface PageProps {
+  params: {
+    id: string
+  }
 }
 
 const OrganizationSkeleton = () => {
@@ -62,77 +52,68 @@ const OrganizationSkeleton = () => {
   )
 }
 
-export default function OrganizationPage() {
-  const { id } = useParams() as { id: string }
-  const [organization, setOrganization] = useState<Organization | null>(null)
-  const [date, setDate] = useState<Date>(new Date())
-  const supabase = createClientComponentClient()
-  const { teeTimes, loading } = usePublicTeeTimes(date, id)
+export default async function OrganizationPage({ params }: PageProps) {
+  const supabase = createServerComponentClient({ cookies })
 
-  useEffect(() => {
-    async function getOrgData() {
-      if (!id) return
+  const { data: orgData } = await supabase
+    .from('organizations')
+    .select('*')
+    .eq('id', params.id)
+    .single()
 
-      const { data: orgData, error } = await supabase
-        .from('organizations')
-        .select('*')
-        .eq('id', id)
-        .single()
-
-      if (error) {
-        console.error('Error fetching organization:', error)
-        return
-      }
-
-      setOrganization(orgData)
-    }
-
-    getOrgData()
-  }, [id, supabase])
-
-  if (!organization) {
+  if (!orgData) {
     return <OrganizationSkeleton />
   }
 
+  // Get initial data based on organization type
+  const initialData = orgData.golf_course 
+    ? await getTeeTimes(new Date(), params.id)
+    : await getSimulatorTimes(new Date(), params.id)
+
   return (
+    <div className="flex-1 flex flex-col lg:flex-row py-8 px-4 gap-8 w-full max-w-[1920px] mx-auto">
+      <div className="flex flex-col md:flow-col gap-6 bg-background overflow-y-auto">
+        <Image
+          src={orgData.image_url}
+          alt="Golf Course"
+          width={320}
+          height={180}
+          className="w-full h-48 object-cover flex rounded-lg"
+        />
 
-      <div className="flex-1 flex flex-col lg:flex-row py-8 px-4 gap-8 w-full max-w-[1920px] mx-auto">
-        <div className="flex flex-col md:flow-col gap-6 bg-background overflow-y-auto">
-            <Image
-              src={organization.image_url}
-              alt="Golf Course"
-              width={320}
-              height={180}
-              className="w-full h-48 object-cover flex rounded-lg"
-            />
-
-          <div className="flex flex-col gap-1">
-            <span className="text-lg font-semibold">{organization.name}</span>
-            <span className="text-sm text-muted-foreground">{organization.golf_course ? 'Golf Course' : 'Simulator Facility'}</span>
-          </div>
-
-          <p className="text-sm hidden lg:block">Some random description</p>
-
-          <Separator />
-
-          <div className="hidden lg:block">
-            <h2 className="font-semibold mb-4">Details</h2>
-            <div className="space-y-2 text-sm">
-              {/* Add your organization details here */}
-            </div>
-          </div>
+        <div className="flex flex-col gap-1">
+          <span className="text-lg font-semibold">{orgData.name}</span>
+          <span className="text-sm text-muted-foreground">{orgData.golf_course ? 'Golf Course' : 'Simulator Facility'}</span>
         </div>
 
-        <div className="flex-1">
-          <div className="space-y-4">
-          {organization.golf_course ? (
-            <TeeTimesList organizationId={organization.id} />
-          ) : (
-            <SimulatorTimesList organizationId={organization.id} />
-          )}
+        <p className="text-sm hidden lg:block">Some random description</p>
+
+        <Separator />
+
+        <div className="hidden lg:block">
+          <h2 className="font-semibold mb-4">Details</h2>
+          <div className="space-y-2 text-sm">
+            {/* Add your organization details here */}
           </div>
-          
         </div>
       </div>
+
+      <div className="flex-1">
+        <div className="space-y-4">
+          {orgData.golf_course ? (
+            <TeeTimesList 
+              organizationId={orgData.id} 
+              initialTeeTimes={initialData.teeTimes}
+              initialNumberOfSimulators={initialData.numberOfSimulators}
+            />
+          ) : (
+            <SimulatorTimesList 
+              organizationId={orgData.id} 
+              initialTeeTimes={initialData}
+            />
+          )}
+        </div>
+      </div>
+    </div>
   )
 }

@@ -13,9 +13,9 @@ import { Calendar } from "@/components/ui/calendar"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { cn } from "@/lib/utils"
 import WeatherInfo from '../getWeather'
-import { usePublicSimulatorTimes } from '@/hooks/usePublicSimulatorTimes'
 import { useUser } from '@clerk/nextjs'
 import { DeleteBookingDialog } from '../Booking/DeleteBookingDialog'
+import { getSimulatorTimes, TeeTimes } from '@/actions/getSimulatorTimes'
 
 // Helper function to get week number
 const getWeekNumber = (date: Date): number => {
@@ -81,10 +81,16 @@ const Skeleton = () => (
 
 interface SimulatorTimesListProps {
   organizationId: string
+  initialTeeTimes: TeeTimes
 }
 
-export default function SimulatorTimesList({ organizationId }: SimulatorTimesListProps) {
-  const [date, setDate] = useState<Date | undefined>(new Date());
+export default function SimulatorTimesList({ 
+  organizationId, 
+  initialTeeTimes 
+}: SimulatorTimesListProps) {
+  const [date, setDate] = useState<Date>(new Date())
+  const [teeTimes, setTeeTimes] = useState<TeeTimes>(initialTeeTimes)
+  const [loading, setLoading] = useState(false)
   const [selectedDay, setSelectedDay] = useState<string>("");
   const [selectedTeeTime, setSelectedTeeTime] = useState<TeeTime | null>(null)
   const [isBookingModalOpen, setIsBookingModalOpen] = useState(false)
@@ -93,7 +99,6 @@ export default function SimulatorTimesList({ organizationId }: SimulatorTimesLis
   const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null)
   const [nowPosition, setNowPosition] = useState<number | null>(null);
   const [intervalMinutes, setIntervalMinutes] = useState<number>(30);
-  const { teeTimes, loading: loadingTeeTimes } = usePublicSimulatorTimes(date, organizationId);
   const { user } = useUser();
 
   useEffect(() => {
@@ -141,6 +146,26 @@ export default function SimulatorTimesList({ organizationId }: SimulatorTimesLis
     return () => clearInterval(interval);
   }, [date, teeTimes, intervalMinutes]);
 
+  useEffect(() => {
+    if (!date || !organizationId) return
+
+    async function updateTeeTimes() {
+      setLoading(true)
+      try {
+        const newTeeTimes = await getSimulatorTimes(date, organizationId)
+        setTeeTimes(newTeeTimes)
+      } catch (error) {
+        console.error('Failed to fetch tee times:', error)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    // Only fetch new data if the date is different from today
+    if (date.toDateString() !== new Date().toDateString()) {
+      updateTeeTimes()
+    }
+  }, [date, organizationId])
 
   const getWeekDates = (currentDate: Date) => {
     // Clone the date to avoid modifying the original
@@ -349,7 +374,7 @@ export default function SimulatorTimesList({ organizationId }: SimulatorTimesLis
         )}
 
         <div className="relative w-full bg-white rounded-md shadow-sm timeSlots">
-          {loadingTeeTimes ? (
+          {loading ? (
             <div className="flex flex-col">
               {Array.from({ length: 10 }).map((_, idx) => (
                 <Skeleton key={idx} />

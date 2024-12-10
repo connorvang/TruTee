@@ -91,10 +91,7 @@ export default function TeeTimesList({
       }
     }
 
-    // Only fetch new data if the date is different from today
-    if (date.toDateString() !== new Date().toDateString()) {
-      updateTeeTimes()
-    }
+    updateTeeTimes()
   }, [date, organizationId])
 
   useEffect(() => {

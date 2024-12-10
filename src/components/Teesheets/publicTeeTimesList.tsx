@@ -292,10 +292,10 @@ export default function TeeTimesList({
                             </div>
                           </div>
                           <div className="flex items-center justify-end gap-2 w-32 px-4 text-sm text-black text-right">
-                            <CarFront size={16} /> ${(item.cart_fee_18 || 0).toFixed(2)}
+                            <CarFront size={16} /> ${item.cart_fee_18?.toFixed(2) ?? 0}
                           </div>
                           <div className="flex items-center justify-end gap-2 w-32 px-4 text-sm text-black text-right">
-                            <Icon iconNode={golfDriver} /> ${(item.green_fee_18 || 0).toFixed(2)}
+                            <Icon iconNode={golfDriver} /> ${item.green_fee_18?.toFixed(2) ?? 0}
                           </div>
                         </Button>
                       </SignedIn>
@@ -313,10 +313,10 @@ export default function TeeTimesList({
                               </div>
                             </div>
                             <div className="flex items-center justify-end gap-2 w-32 px-4 text-sm text-black text-right">
-                              <CarFront size={16} /> ${(item.cart_fee_18 || 0).toFixed(2)}
+                              <CarFront size={16} /> ${item.cart_fee_18?.toFixed(2) ?? 0}
                             </div>
                             <div className="flex items-center justify-end gap-2 w-32 px-4 text-sm text-black text-right">
-                              <FlagIcon size={16} /> ${(item.green_fee_18 || 0).toFixed(2)}
+                              <FlagIcon size={16} /> ${item.green_fee_18?.toFixed(2) ?? 0}
                             </div>
                           </Button>
                         </SignInButton>

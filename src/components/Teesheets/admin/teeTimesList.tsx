@@ -13,7 +13,8 @@ import { Breadcrumb, BreadcrumbItem, BreadcrumbList, BreadcrumbPage, BreadcrumbS
 import { Calendar } from "@/components/ui/calendar"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { cn } from "@/lib/utils"
-import { useTeeTimes } from '@/hooks/admin/useTeeTimes'
+import { getTeeTimes } from '@/actions/getTeeTimes'
+import { useOrganization } from '@clerk/nextjs'
 import WeatherInfo from '../../getWeather'
 
 // Helper function to get week number
@@ -104,7 +105,34 @@ export default function TeeTimesList() {
   const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null)
   const [nowPosition, setNowPosition] = useState<number | null>(null);
   const [intervalMinutes, setIntervalMinutes] = useState<number>(10);
-  const { teeTimes, loading: loadingTeeTimes } = useTeeTimes(date)
+  const [teeTimes, setTeeTimes] = useState<TeeTime[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<Error | null>(null);
+  const { organization } = useOrganization();
+  const activeOrganization = organization?.id;
+
+  useEffect(() => {
+    if (!date || !activeOrganization) {
+      setLoading(false);
+      return;
+    }
+
+    const fetchTeeTimes = async () => {
+      setLoading(true);
+      try {
+        const { teeTimes, numberOfSimulators } = await getTeeTimes(date, activeOrganization);
+        setTeeTimes(teeTimes);
+        // Optionally handle numberOfSimulators if needed
+        setError(null);
+      } catch (err) {
+        setError(err instanceof Error ? err : new Error('Failed to fetch tee times'));
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchTeeTimes();
+  }, [date, activeOrganization]);
 
   useEffect(() => {
     if (teeTimes.length < 2) return;
@@ -324,11 +352,16 @@ export default function TeeTimesList() {
         </TabsList>
 
         <div className="relative">
-          {loadingTeeTimes ? (
+          {loading ? (
             <div className="flex flex-col">
               {Array.from({ length: 10 }).map((_, idx) => (
                 <Skeleton key={idx} />
               ))}
+            </div>
+          ) : error ? (
+            <div className="flex flex-col items-center justify-center gap-4 py-16 text-gray-500">
+              <LandPlot size={32} />
+              Error: {error.message}
             </div>
           ) : teeTimes.length === 0 ? (
             <div className="flex flex-col items-center justify-center gap-4 py-16 text-gray-500">
@@ -355,7 +388,7 @@ export default function TeeTimesList() {
                     {format(new Date(item.start_time), 'h:mm a')}
                   </div>
                   <div className="w-20 pr-4 text-sm font-small text-gray-600 text-right">
-                    ${item.green_fee_18.toFixed(2)}
+                    ${item.green_fee_18?.toFixed(2) ?? 0}
                   </div>
                   <div className="grid grid-cols-4 gap-2 flex-1">
                     {(() => {

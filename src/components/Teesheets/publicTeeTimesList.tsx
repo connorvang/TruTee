@@ -14,7 +14,7 @@ import { Breadcrumb, BreadcrumbItem, BreadcrumbList, BreadcrumbPage, BreadcrumbS
 import { Calendar } from "@/components/ui/calendar"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { cn } from "@/lib/utils"
-import { usePublicTeeTimes } from '@/hooks/usePublicTeeTimes'
+import { getTeeTimes, TeeTime } from '@/actions/getTeeTimes'
 import WeatherInfo from '../getWeather'
 
 // Helper function to get week number
@@ -39,46 +39,60 @@ const getWeekNumber = (date: Date): number => {
 };
 
 
-interface TeeTime {
-  id: string;
-  start_time: string;
-  end_time: string;
-  green_fee_18: number;
-  cart_fee_18: number;
-  available_spots: number;
-  booked_spots: number;
+interface TeeTimesListProps {
+  organizationId: string;
+  initialTeeTimes: TeeTime[];
+  initialNumberOfSimulators: number;
 }
 
-// Skeleton component
 const Skeleton = () => (
-  <div className="flex items-center border-b px-6 py-2 border-gray-100 animate-pulse">
-    <div className="w-20 pr-4 text-sm font-small text-right">
-      <div className="h-4 bg-gray-100 rounded w-full"></div>
+  <div className="flex w-full items-center border-b px-6 py-4 border-gray-100 animate-pulse">
+    <div className="w-20 pr-4">
+      <div className="h-4 bg-gray-100 rounded w-16"></div>
     </div>
-    <div className="w-20 pr-4 text-sm font-small text-gray-600 text-right">
-      <div className="h-4 bg-gray-100 rounded w-full"></div>
+    <div className="flex-1 flex justify-between items-center">
+      <div className="flex items-center gap-4">
+        <div className="h-4 bg-gray-100 rounded w-24"></div>
+      </div>
     </div>
-    <div className="flex flex-1 space-x-2">
-      {Array.from({ length: 4 }).map((_, idx) => (
-        <div key={idx} className="flex-1 h-8 bg-gray-100 border border-gray-200 rounded-md"></div>
-      ))}
+    <div className="w-32 px-4">
+      <div className="h-4 bg-gray-100 rounded w-20 ml-auto"></div>
+    </div>
+    <div className="w-32 px-4">
+      <div className="h-4 bg-gray-100 rounded w-20 ml-auto"></div>
     </div>
   </div>
 );
 
-interface TeeTimesListProps {
-  organizationId: string;
-}
-
-export default function TeeTimesList({ organizationId }: TeeTimesListProps) {
-  const [date, setDate] = useState<Date | undefined>(new Date());
+export default function TeeTimesList({ 
+  organizationId, 
+  initialTeeTimes,
+}: TeeTimesListProps) {
+  const [date, setDate] = useState<Date>(new Date())
+  const [teeTimes, setTeeTimes] = useState<TeeTime[]>(initialTeeTimes)
+  const [loading, setLoading] = useState(false)
   const [selectedDay, setSelectedDay] = useState<string>("");
   const [selectedTeeTime, setSelectedTeeTime] = useState<TeeTime | null>(null)
   const [isBookingModalOpen, setIsBookingModalOpen] = useState(false)
-  const { teeTimes, loading: loadingTeeTimes } = usePublicTeeTimes(date, organizationId)
   const { isSignedIn } = useAuth();
 
+  useEffect(() => {
+    if (!date || !organizationId) return
 
+    async function updateTeeTimes() {
+      setLoading(true)
+      try {
+        const data = await getTeeTimes(date, organizationId)
+        setTeeTimes(data.teeTimes)
+      } catch (error) {
+        console.error('Failed to fetch tee times:', error)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    updateTeeTimes()
+  }, [date, organizationId])
 
   useEffect(() => {
     if (date) {
@@ -197,7 +211,7 @@ export default function TeeTimesList({ organizationId }: TeeTimesListProps) {
                     <Calendar
                       mode="single"
                       selected={date}
-                      onSelect={setDate}
+                      onSelect={(newDate) => newDate && setDate(newDate)}
                       initialFocus
                       required
                     />
@@ -248,7 +262,7 @@ export default function TeeTimesList({ organizationId }: TeeTimesListProps) {
         <div className="flex items-center justify-between px-1 py-1 bg-gray-100 rounded-lg">
 
         <div className="relative flex-1 bg-white rounded-md shadow-sm">
-          {loadingTeeTimes ? (
+          {loading ? (
             <div className="flex flex-col">
               {Array.from({ length: 10 }).map((_, idx) => (
                 <Skeleton key={idx} />
@@ -275,10 +289,10 @@ export default function TeeTimesList({ organizationId }: TeeTimesListProps) {
                             </div>
                           </div>
                           <div className="flex items-center justify-end gap-2 w-32 px-4 text-sm text-black text-right">
-                            <CarFront size={16} /> ${(item.cart_fee_18 || 0).toFixed(2)}
+                            <CarFront size={16} /> ${item.cart_fee_18?.toFixed(2) ?? 0}
                           </div>
                           <div className="flex items-center justify-end gap-2 w-32 px-4 text-sm text-black text-right">
-                            <Icon iconNode={golfDriver} /> ${(item.green_fee_18 || 0).toFixed(2)}
+                            <Icon iconNode={golfDriver} /> ${item.green_fee_18?.toFixed(2) ?? 0}
                           </div>
                         </Button>
                       </SignedIn>
@@ -296,10 +310,10 @@ export default function TeeTimesList({ organizationId }: TeeTimesListProps) {
                               </div>
                             </div>
                             <div className="flex items-center justify-end gap-2 w-32 px-4 text-sm text-black text-right">
-                              <CarFront size={16} /> ${(item.cart_fee_18 || 0).toFixed(2)}
+                              <CarFront size={16} /> ${item.cart_fee_18?.toFixed(2) ?? 0}
                             </div>
                             <div className="flex items-center justify-end gap-2 w-32 px-4 text-sm text-black text-right">
-                              <FlagIcon size={16} /> ${(item.green_fee_18 || 0).toFixed(2)}
+                              <FlagIcon size={16} /> ${item.green_fee_18?.toFixed(2) ?? 0}
                             </div>
                           </Button>
                         </SignInButton>

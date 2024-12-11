@@ -13,9 +13,9 @@ import { Calendar } from "@/components/ui/calendar"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { cn } from "@/lib/utils"
 import WeatherInfo from '../getWeather'
-import { usePublicSimulatorTimes } from '@/hooks/usePublicSimulatorTimes'
 import { useUser } from '@clerk/nextjs'
 import { DeleteBookingDialog } from '../Booking/DeleteBookingDialog'
+import { getSimulatorTimes, TeeTimes } from '@/actions/getSimulatorTimes'
 
 // Helper function to get week number
 const getWeekNumber = (date: Date): number => {
@@ -64,11 +64,8 @@ interface TeeTime {
 
 // Skeleton component
 const Skeleton = () => (
-  <div className="flex items-center border-b px-6 py-2 border-gray-100 animate-pulse">
-    <div className="w-20 pr-4 text-sm font-small text-right">
-      <div className="h-4 bg-gray-100 rounded w-full"></div>
-    </div>
-    <div className="w-20 pr-4 text-sm font-small text-gray-600 text-right">
+  <div className="flex items-center border-b pl-6 pr-4 py-2 border-gray-100 animate-pulse">
+    <div className="w-26 pr-4 text-sm font-small text-right">
       <div className="h-4 bg-gray-100 rounded w-full"></div>
     </div>
     <div className="flex flex-1 space-x-2">
@@ -81,10 +78,16 @@ const Skeleton = () => (
 
 interface SimulatorTimesListProps {
   organizationId: string
+  initialTeeTimes: TeeTimes
 }
 
-export default function SimulatorTimesList({ organizationId }: SimulatorTimesListProps) {
-  const [date, setDate] = useState<Date | undefined>(new Date());
+export default function SimulatorTimesList({ 
+  organizationId, 
+  initialTeeTimes 
+}: SimulatorTimesListProps) {
+  const [date, setDate] = useState<Date>(new Date())
+  const [teeTimes, setTeeTimes] = useState<TeeTimes>(initialTeeTimes)
+  const [loading, setLoading] = useState(false)
   const [selectedDay, setSelectedDay] = useState<string>("");
   const [selectedTeeTime, setSelectedTeeTime] = useState<TeeTime | null>(null)
   const [isBookingModalOpen, setIsBookingModalOpen] = useState(false)
@@ -93,7 +96,6 @@ export default function SimulatorTimesList({ organizationId }: SimulatorTimesLis
   const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null)
   const [nowPosition, setNowPosition] = useState<number | null>(null);
   const [intervalMinutes, setIntervalMinutes] = useState<number>(30);
-  const { teeTimes, loading: loadingTeeTimes } = usePublicSimulatorTimes(date, organizationId);
   const { user } = useUser();
 
   useEffect(() => {
@@ -141,6 +143,23 @@ export default function SimulatorTimesList({ organizationId }: SimulatorTimesLis
     return () => clearInterval(interval);
   }, [date, teeTimes, intervalMinutes]);
 
+  useEffect(() => {
+    if (!date || !organizationId) return
+
+    async function updateTeeTimes() {
+      setLoading(true)
+      try {
+        const newTeeTimes = await getSimulatorTimes(date, organizationId)
+        setTeeTimes(newTeeTimes)
+      } catch (error) {
+        console.error('Failed to fetch tee times:', error)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    updateTeeTimes()
+  }, [date, organizationId])
 
   const getWeekDates = (currentDate: Date) => {
     // Clone the date to avoid modifying the original
@@ -211,7 +230,11 @@ export default function SimulatorTimesList({ organizationId }: SimulatorTimesLis
       if (totalDuration >= 180) break; // Stop if we reach 3 hours
       if (slot.tee_time_bookings.length > 0) break; // Stop if there's a booking
 
-      availableSlots.push(slot as TeeTime);
+      availableSlots.push({
+        ...slot,
+        available_spots: 1,
+        booked_spots: 0
+      });
       totalDuration += (new Date(slot.end_time).getTime() - new Date(slot.start_time).getTime()) / 60000;
     }
 
@@ -349,7 +372,7 @@ export default function SimulatorTimesList({ organizationId }: SimulatorTimesLis
         )}
 
         <div className="relative w-full bg-white rounded-md shadow-sm timeSlots">
-          {loadingTeeTimes ? (
+          {loading ? (
             <div className="flex flex-col">
               {Array.from({ length: 10 }).map((_, idx) => (
                 <Skeleton key={idx} />
@@ -373,107 +396,105 @@ export default function SimulatorTimesList({ organizationId }: SimulatorTimesLis
                   <div className="flex-1 ml-8 h-[1px] bg-red-500"></div>
                 </div>
               )}
-            </>
-          )}
-          {Object.keys(teeTimes).length > 0 && (
-            <div className="flex flex-row">
-              <div className="flex flex-col w-26">
-                {Array.from({ length: 48 }, (_, index) => {
-                  const hour = Math.floor(index / 2);
-                  const minutes = index % 2 === 0 ? '00' : '30';
+              <div className="flex flex-row">
+                <div className="flex flex-col w-26">
+                  {Array.from({ length: 48 }, (_, index) => {
+                    const hour = Math.floor(index / 2);
+                    const minutes = index % 2 === 0 ? '00' : '30';
+                    return (
+                      <div key={index} className="h-12 border-b w-26 pl-6 pr-4 border-gray-100 flex items-center justify-end text-sm font-small text-right">
+                        {`${hour % 12 === 0 ? 12 : hour % 12}:${minutes} ${hour < 12 ? 'AM' : 'PM'}`}
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {Object.entries(teeTimes).map(([simulator, times]) => {
+                  if (times.length === 0) return null; // Skip rendering if no tee times
+
+                  let skipSlots = 0; // Track slots to skip for consecutive bookings
+
                   return (
-                    <div key={index} className="h-12 border-b w-26 pl-6 pr-4 border-gray-100 flex items-center justify-end text-sm font-small text-right">
-                      {`${hour % 12 === 0 ? 12 : hour % 12}:${minutes} ${hour < 12 ? 'AM' : 'PM'}`}
+                    <div key={simulator} className="flex flex-1 flex-col">
+                      {times.map((item: TeeTime, index: number) => {
+                        if (skipSlots > 0) {
+                          skipSlots--;
+                          return null; // Skip rendering this slot
+                        }
+
+                        const bookingData = item.tee_time_bookings[0]?.bookings;
+                        const isBooked = bookingData !== undefined;
+
+                        // Check if the tee time is more than 30 minutes in the past
+  const startTime = new Date(item.start_time);
+  const isPast = (currentDateTime.getTime() - startTime.getTime()) > 30 * 60 * 1000;
+
+                        // Check for consecutive bookings
+                        if (isBooked) {
+                          let consecutiveCount = 1;
+                          for (let i = index + 1; i < times.length; i++) {
+                            const nextBookingData = times[i].tee_time_bookings[0]?.bookings;
+                            if (nextBookingData && nextBookingData.id === bookingData.id) {
+                              consecutiveCount++;
+                            } else {
+                              break;
+                            }
+                          }
+                          skipSlots = consecutiveCount - 1; // Set slots to skip
+                        }
+
+                        return (
+                          <div
+                            key={item.id}
+                            className={`h-${isBooked ? 12 * (skipSlots + 1) : 12} min-h-12 py-2 border-b p-2 border-gray-100`}
+                          >
+                            <div className="flex-1 h-full">
+                              {isBooked ? (
+                                <button
+                                  className={`w-full h-full px-2 py-[5px] rounded-md text-white bg-gray-900 border border-gray-500 hover:bg-gray-700 flex min-w-0 disabled:bg-gray-600 disabled:cursor-not-allowed disabled:hover:bg-gray-600 ${isPast ? 'bg-gray-300 cursor-not-allowed' : ''}`}
+                                  onClick={() => {
+                                    if (bookingData && bookingData.user_id === user?.id) {
+                                      const booking: Booking = {
+                                        ...bookingData,
+                                        guests: 0,
+                                      };
+                                      handleDeleteBookingClick(item, booking);
+                                    }
+                                  }}
+                                  disabled={bookingData.user_id !== user?.id || isPast}
+                                >
+                                  <span className="text-sm font-medium">
+                                    {bookingData.user_id === user?.id ? (
+                                      <div className="flex flex-col items-start">
+                                        <span className="text-white">{user?.fullName}</span>
+                                      </div>
+                                    ) : (
+                                      `Booked`
+                                    )}
+                                  </span>
+                                </button>
+                              ) : (
+                                <button
+                                  className={`w-full h-full flex items-center justify-center rounded-md border border-gray-200 bg-gray-100 ${isPast ? 'bg-gray-100 cursor-not-allowed hover:none' : 'hover:bg-gray-200'}`}
+                                  onClick={() => handleBookingClick(item)}
+                                  disabled={isPast}
+                                >
+                                  {isPast ? (
+                                    <Lock className="text-gray-300" size={16} />
+                                  ) : (
+                                    <PlusCircle className="text-gray-500" size={16} />
+                                  )}
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
                     </div>
                   );
                 })}
               </div>
-
-              {Object.entries(teeTimes).map(([simulator, times]) => {
-                if (times.length === 0) return null; // Skip rendering if no tee times
-
-                let skipSlots = 0; // Track slots to skip for consecutive bookings
-
-                return (
-                  <div key={simulator} className="flex flex-1 flex-col">
-                    {times.map((item: TeeTime, index: number) => {
-                      if (skipSlots > 0) {
-                        skipSlots--;
-                        return null; // Skip rendering this slot
-                      }
-
-                      const bookingData = item.tee_time_bookings[0]?.bookings;
-                      const isBooked = bookingData !== undefined;
-
-                      // Check if the tee time is more than 30 minutes in the past
-  const startTime = new Date(item.start_time);
-  const isPast = (currentDateTime.getTime() - startTime.getTime()) > 30 * 60 * 1000;
-
-                      // Check for consecutive bookings
-                      if (isBooked) {
-                        let consecutiveCount = 1;
-                        for (let i = index + 1; i < times.length; i++) {
-                          const nextBookingData = times[i].tee_time_bookings[0]?.bookings;
-                          if (nextBookingData && nextBookingData.id === bookingData.id) {
-                            consecutiveCount++;
-                          } else {
-                            break;
-                          }
-                        }
-                        skipSlots = consecutiveCount - 1; // Set slots to skip
-                      }
-
-                      return (
-                        <div
-                          key={item.id}
-                          className={`h-${isBooked ? 12 * (skipSlots + 1) : 12} min-h-12 py-2 border-b p-2 border-gray-100`}
-                        >
-                          <div className="flex-1 h-full">
-                            {isBooked ? (
-                              <button
-                                className={`w-full h-full px-2 py-[5px] rounded-md text-white bg-gray-900 border border-gray-500 hover:bg-gray-700 flex min-w-0 disabled:bg-gray-600 disabled:cursor-not-allowed disabled:hover:bg-gray-600 ${isPast ? 'bg-gray-300 cursor-not-allowed' : ''}`}
-                                onClick={() => {
-                                  if (bookingData && bookingData.user_id === user?.id) {
-                                    const booking: Booking = {
-                                      ...bookingData,
-                                      guests: 0,
-                                    };
-                                    handleDeleteBookingClick(item, booking);
-                                  }
-                                }}
-                                disabled={bookingData.user_id !== user?.id || isPast}
-                              >
-                                <span className="text-sm font-medium">
-                                  {bookingData.user_id === user?.id ? (
-                                    <div className="flex flex-col items-start">
-                                      <span className="text-white">{user?.fullName}</span>
-                                    </div>
-                                  ) : (
-                                    `Booked`
-                                  )}
-                                </span>
-                              </button>
-                            ) : (
-                              <button
-                                className={`w-full h-full flex items-center justify-center rounded-md border border-gray-200 bg-gray-100 ${isPast ? 'bg-gray-100 cursor-not-allowed hover:none' : 'hover:bg-gray-200'}`}
-                                onClick={() => handleBookingClick(item)}
-                                disabled={isPast}
-                              >
-                                {isPast ? (
-                                  <Lock className="text-gray-300" size={16} />
-                                ) : (
-                                  <PlusCircle className="text-gray-500" size={16} />
-                                )}
-                              </button>
-                            )}
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                );
-              })}
-            </div>
+            </>
           )}
 
           {selectedTeeTime && (

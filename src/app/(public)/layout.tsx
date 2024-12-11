@@ -1,13 +1,9 @@
 import '../../app/globals.css'
-import { Toaster } from "@/components/ui/toaster"
-import { ClerkProvider } from '@clerk/nextjs' 
 import Link from 'next/link'
 import { SignInButton, SignUpButton, SignedIn, SignedOut, UserButton } from '@clerk/nextjs'
 import { Button } from '@/components/ui/button'
 import Image from 'next/image'
 
-import { GeistSans } from 'geist/font/sans';
-import { GeistMono } from 'geist/font/mono';
 
 
 export const metadata = {
@@ -43,6 +39,9 @@ export default function RootLayout({
               </SignUpButton>
               </SignedOut>
               <SignedIn>
+                <Button variant="ghost" size="sm" asChild>
+                  <Link href="/reservations">Reservations</Link>
+                </Button>
                 <Button variant="ghost" size="sm" asChild>
                   <Link href="/admin">Admin</Link>
                 </Button>

@@ -1,6 +1,6 @@
 "use client"
 
-import { ChevronLeft, ChevronRight, ChevronDown, LandPlot, PlusCircle } from 'lucide-react'
+import { ChevronLeft, ChevronRight, ChevronDown, LandPlot, PlusCircle, Lock } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { format } from "date-fns"
 import { BookingModal } from '@/components/Booking/admin/adminSimulatorBookingModal'
@@ -14,7 +14,8 @@ import { Calendar } from "@/components/ui/calendar"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { cn } from "@/lib/utils"
 import WeatherInfo from '../../getWeather'
-import { useSimulatorTimes } from '@/hooks/admin/useSimulatorTimes'
+import { getSimulatorTimes } from '@/actions/getSimulatorTimes'
+import { useOrganization } from '@clerk/nextjs'
 
 // Helper function to get week number
 const getWeekNumber = (date: Date): number => {
@@ -99,7 +100,12 @@ export default function SimulatorTimesList() {
   const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null)
   const [nowPosition, setNowPosition] = useState<number | null>(null);
   const [intervalMinutes, setIntervalMinutes] = useState<number>(30);
-  const { teeTimes, loading: loadingTeeTimes } = useSimulatorTimes(date);
+  const [teeTimes, setTeeTimes] = useState<{ [simulator: number]: TeeTime[] }>({});
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<Error | null>(null);
+  const { organization } = useOrganization();
+  const activeOrganization = organization?.id;
+  const currentDateTime = new Date();
 
   useEffect(() => {
     setIntervalMinutes(30);
@@ -146,6 +152,27 @@ export default function SimulatorTimesList() {
     return () => clearInterval(interval);
   }, [date, teeTimes, intervalMinutes]);
 
+  useEffect(() => {
+    if (!date || !activeOrganization) {
+      setLoading(false);
+      return;
+    }
+
+    const fetchSimulatorTimes = async () => {
+      setLoading(true);
+      try {
+        const groupedTeeTimes = await getSimulatorTimes(date, activeOrganization);
+        setTeeTimes(groupedTeeTimes);
+        setError(null);
+      } catch (err) {
+        setError(err instanceof Error ? err : new Error('Failed to fetch simulator times'));
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchSimulatorTimes();
+  }, [date, activeOrganization]);
 
   const getWeekDates = (currentDate: Date) => {
     // Clone the date to avoid modifying the original
@@ -186,21 +213,21 @@ export default function SimulatorTimesList() {
   };
 
   const getDateFromDay = (dayShort: string) => {
-  const targetDate = date || new Date();
-  const day = targetDate.getDay();
-  const diff = -day; // Adjust to get Sunday
-  const startOfWeek = new Date(targetDate);
-  startOfWeek.setDate(targetDate.getDate() + diff);
-  
-  const daysMap: { [key: string]: number } = {
-    "Sun": 0, "Mon": 1, "Tue": 2, "Wed": 3, 
-    "Thu": 4, "Fri": 5, "Sat": 6
+    const targetDate = date || new Date();
+    const day = targetDate.getDay();
+    const diff = -day; // Adjust to get Sunday
+    const startOfWeek = new Date(targetDate);
+    startOfWeek.setDate(targetDate.getDate() + diff);
+    
+    const daysMap: { [key: string]: number } = {
+      "Sun": 0, "Mon": 1, "Tue": 2, "Wed": 3, 
+      "Thu": 4, "Fri": 5, "Sat": 6
+    };
+    
+    const newDate = new Date(startOfWeek);
+    newDate.setDate(startOfWeek.getDate() + daysMap[dayShort]);
+    return newDate;
   };
-  
-  const newDate = new Date(startOfWeek);
-  newDate.setDate(startOfWeek.getDate() + daysMap[dayShort]);
-  return newDate;
-};
 
   const handleBookingClick = (item: TeeTime) => {
     const availableSlots: TeeTime[] = [];
@@ -296,11 +323,8 @@ export default function SimulatorTimesList() {
         </div>
 
         <div className="flex items-center gap-8">
-
           <WeatherInfo />
-
           <Separator orientation="vertical" className="h-4" />
-          
           <div className="flex items-center gap-4">
             <div className="flex items-center gap-2">
               <Button variant="ghost" className="w-8 h-8" onClick={handlePreviousWeek}>
@@ -331,22 +355,8 @@ export default function SimulatorTimesList() {
             </TabsTrigger>
           ))}
         </TabsList>
-        {simulatorCount > 0 && (
-          <div className="flex pl-6 h-10 baysHeader border-y border-gray-100">
-            <div className="w-20 pr-4 text-sm font-small text-right"></div>
-            {Object.keys(teeTimes).map((simulator, index) => (
-              <div
-                key={simulator}
-                className="flex flex-1 text-sm font-medium text-gray-900 justify-center items-center"
-              >
-                {`Bay ${index + 1}`}
-              </div>
-            ))}
-          </div>
-        )}
-
-        <div className="relative timeSlots">
-          {loadingTeeTimes ? (
+        <div className="relative w-full bg-white rounded-md shadow-sm timeSlots">
+          {loading ? (
             <div className="flex flex-col">
               {Array.from({ length: 10 }).map((_, idx) => (
                 <Skeleton key={idx} />
@@ -370,96 +380,101 @@ export default function SimulatorTimesList() {
                   <div className="flex-1 ml-8 h-[1px] bg-red-500"></div>
                 </div>
               )}
-            </>
-          )}
+              <div className="flex flex-row">
+                <div className="flex flex-col w-26">
+                  {Array.from({ length: 48 }, (_, index) => {
+                    const hour = Math.floor(index / 2);
+                    const minutes = index % 2 === 0 ? '00' : '30';
+                    return (
+                      <div key={index} className="h-12 border-b w-26 pl-6 pr-4 border-gray-100 flex items-center justify-end text-sm font-small text-right">
+                        {`${hour % 12 === 0 ? 12 : hour % 12}:${minutes} ${hour < 12 ? 'AM' : 'PM'}`}
+                      </div>
+                    );
+                  })}
+                </div>
 
-          {Object.keys(teeTimes).length > 0 && (
-            <div className="flex flex-row">
-              <div className="flex flex-col w-26">
-                {Array.from({ length: 48 }, (_, index) => {
-                  const hour = Math.floor(index / 2);
-                  const minutes = index % 2 === 0 ? '00' : '30';
+                {Object.entries(teeTimes).map(([simulator, times]) => {
+                  if (times.length === 0) return null;
+
+                  let skipSlots = 0;
+
                   return (
-                    <div key={index} className="h-12 border-b w-26 pl-6 pr-4 border-gray-100 flex items-center justify-end text-sm font-small text-right">
-                      {`${hour % 12 === 0 ? 12 : hour % 12}:${minutes} ${hour < 12 ? 'AM' : 'PM'}`}
+                    <div key={simulator} className="flex flex-1 flex-col">
+                      {times.map((item: TeeTime, index: number) => {
+                        if (skipSlots > 0) {
+                          skipSlots--;
+                          return null;
+                        }
+
+                        const bookingData = item.tee_time_bookings[0]?.bookings;
+                        const isBooked = bookingData !== undefined;
+
+                        const startTime = new Date(item.start_time);
+                        const isPast = (currentDateTime.getTime() - startTime.getTime()) > 30 * 60 * 1000;
+
+                        if (isBooked) {
+                          let consecutiveCount = 1;
+                          for (let i = index + 1; i < times.length; i++) {
+                            const nextBookingData = times[i].tee_time_bookings[0]?.bookings;
+                            if (nextBookingData && nextBookingData.id === bookingData.id) {
+                              consecutiveCount++;
+                            } else {
+                              break;
+                            }
+                          }
+                          skipSlots = consecutiveCount - 1;
+                        }
+
+                        return (
+                          <div
+                            key={item.id}
+                            className={`h-${isBooked ? 12 * (skipSlots + 1) : 12} min-h-12 py-2 border-b p-2 border-gray-100`}
+                          >
+                            <div className="flex-1 h-full">
+                              {isBooked ? (
+                                <button
+                                  className={`w-full h-full px-2 py-[5px] rounded-md text-white bg-gray-900 border border-gray-500 hover:bg-gray-700 flex min-w-0 disabled:bg-gray-600 disabled:cursor-not-allowed disabled:hover:bg-gray-600 ${isPast ? 'bg-gray-300 cursor-not-allowed' : ''}`}
+                                  onClick={() => {
+                                    if (bookingData) {
+                                      const booking: Booking = {
+                                        ...bookingData,
+                                        guests: 0,
+                                      };
+                                      handleDeleteBookingClick(item, booking);
+                                    }
+                                  }}
+                                  disabled={isPast}
+                                >
+                                  <span className="text-sm text-left font-medium truncate ml-2 flex-1">
+                                    {`${bookingData?.users?.first_name ?? 'Unknown'} ${bookingData?.users?.last_name ?? 'User'} (${
+                                      bookingData?.users?.handicap < 0 
+                                        ? `+${Math.abs(bookingData?.users?.handicap ?? 0)}`
+                                        : bookingData?.users?.handicap ?? 0
+                                    })`}
+                                  </span>
+                                </button>
+                              ) : (
+                                <button
+                                  className={`w-full h-full flex items-center justify-center rounded-md border border-gray-200 bg-gray-100 ${isPast ? 'bg-gray-100 cursor-not-allowed hover:none' : 'hover:bg-gray-200'}`}
+                                  onClick={() => handleBookingClick(item)}
+                                  disabled={isPast}
+                                >
+                                  {isPast ? (
+                                    <Lock className="text-gray-300" size={16} />
+                                  ) : (
+                                    <PlusCircle className="text-gray-500" size={16} />
+                                  )}
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
                     </div>
                   );
                 })}
               </div>
-
-              {Object.entries(teeTimes).map(([simulator, times]) => {
-                if (times.length === 0) return null; // Skip rendering if no tee times
-
-                let skipSlots = 0; // Track slots to skip for consecutive bookings
-
-                return (
-                  <div key={simulator} className="flex flex-1 flex-col">
-                    {times.map((item: TeeTime, index: number) => {
-                      if (skipSlots > 0) {
-                        skipSlots--;
-                        return null; // Skip rendering this slot
-                      }
-
-                      const bookingData = item.tee_time_bookings[0]?.bookings;
-                      const isBooked = bookingData !== undefined;
-
-                      // Check for consecutive bookings
-                      if (isBooked) {
-                        let consecutiveCount = 1;
-                        for (let i = index + 1; i < times.length; i++) {
-                          const nextBookingData = times[i].tee_time_bookings[0]?.bookings;
-                          if (nextBookingData && nextBookingData.id === bookingData.id) {
-                            consecutiveCount++;
-                          } else {
-                            break;
-                          }
-                        }
-                        skipSlots = consecutiveCount - 1; // Set slots to skip
-                      }
-
-                      return (
-                        <div
-                          key={item.id}
-                          className={`h-${isBooked ? 12 * (skipSlots + 1) : 12} min-h-12 py-2 border-b p-2 border-gray-100`}
-                        >
-                          <div className="flex-1 h-full">
-                            {isBooked ? (
-                              <button
-                                className="w-full h-full px-2 py-[5px] rounded-md text-white bg-gray-900 border border-gray-500 hover:bg-gray-700 flex items-start content-start min-w-0"
-                                onClick={() => {
-                                  if (bookingData) {
-                                    const booking: Booking = {
-                                      ...bookingData,
-                                      guests: 0, // or the appropriate number of guests
-                                    };
-                                    handleDeleteBookingClick(item, booking);
-                                  }
-                                }}
-                              >
-                                <span className="text-sm text-left font-medium truncate ml-2 flex-1">
-                                  {`${bookingData?.users.first_name} ${bookingData?.users.last_name} (${
-                                    bookingData?.users.handicap < 0 
-                                      ? `+${Math.abs(bookingData.users.handicap)}` 
-                                      : bookingData?.users.handicap
-                                  })`}
-                                </span>
-                              </button>
-                            ) : (
-                              <button
-                                className="w-full h-full flex items-center justify-center rounded-md border border-gray-200 bg-gray-100 hover:bg-gray-200"
-                                onClick={() => handleBookingClick(item)}
-                              >
-                                <PlusCircle className="text-gray-500" size={16} />
-                              </button>
-                            )}
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                );
-              })}
-            </div>
+            </>
           )}
 
           {selectedTeeTime && (

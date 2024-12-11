@@ -230,7 +230,11 @@ export default function SimulatorTimesList({
       if (totalDuration >= 180) break; // Stop if we reach 3 hours
       if (slot.tee_time_bookings.length > 0) break; // Stop if there's a booking
 
-      availableSlots.push(slot as TeeTime);
+      availableSlots.push({
+        ...slot,
+        available_spots: 1,
+        booked_spots: 0
+      });
       totalDuration += (new Date(slot.end_time).getTime() - new Date(slot.start_time).getTime()) / 60000;
     }
 

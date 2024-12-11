@@ -3,20 +3,25 @@
 import { createServerComponentClient } from '@supabase/auth-helpers-nextjs'
 import { cookies } from 'next/headers'
 
-export interface TeeTime {
-  id: string
-  start_time: string
-  end_time: string
-  price: number
-  simulator: number
-  tee_time_bookings: {
+interface TeeTime {
     id: string
-    bookings: {
+    start_time: string
+    end_time: string
+    price: number
+    simulator: number
+    tee_time_bookings: {
       id: string
-      user_id: string
-    }
-  }[]
-}
+      bookings: {
+        id: string
+        user_id: string
+        users: {
+          handicap: number
+          first_name: string
+          last_name: string
+        }
+      }
+    }[]
+  }
 
 export interface TeeTimes {
   [simulator: number]: TeeTime[]
@@ -39,7 +44,12 @@ export async function getSimulatorTimes(date: Date, organizationId: string) {
         id,
         bookings (
           id,
-          user_id
+          user_id,
+          users (
+            handicap,
+            first_name,
+            last_name
+          )
         )
       )
     `)

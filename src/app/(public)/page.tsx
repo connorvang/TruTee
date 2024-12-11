@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic'
+
 import { OrganizationCard } from "@/components/OrganizationCard"
 import { getOrganizations } from '@/actions/getOrganizations'
 

@@ -1,8 +1,29 @@
-// src/app/_actions/simulator.ts
 'use server'
 
 import { createServerComponentClient } from '@supabase/auth-helpers-nextjs'
 import { cookies } from 'next/headers'
+
+interface TeeTime {
+  id: string;
+  start_time: string;
+  end_time: string;
+  price: number;
+  booked_spots: number;
+  simulator: number;
+  available_spots: number;
+  tee_time_bookings: {
+    id: string;
+    bookings: {
+      id: string;
+      user_id: string;
+      users: {
+        handicap: number;
+        first_name: string;
+        last_name: string;
+      };
+    }[];
+  }[];
+}
 
 export async function getSimulatorTimes(date: Date, organizationId: string) {
   const supabase = createServerComponentClient({ cookies })
@@ -46,10 +67,10 @@ export async function getSimulatorTimes(date: Date, organizationId: string) {
     if (error) throw error
 
     // Organize tee times by simulator
-    const organizedTeeTimes: { [key: number]: any[] } = {}
+    const organizedTeeTimes: { [key: number]: TeeTime[] } = {}
     for (let i = 1; i <= (settingsData?.number_of_simulators || 0); i++) {
       organizedTeeTimes[i] = teeTimesData
-        .filter(time => time.simulator === i)
+        .filter((time: TeeTime) => time.simulator === i)
         .sort((a, b) => new Date(a.start_time).getTime() - new Date(b.start_time).getTime())
     }
 

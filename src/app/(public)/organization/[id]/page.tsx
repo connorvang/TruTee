@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic'
+
 import { Separator } from "@/components/ui/separator"
 import Image from 'next/image'
 import TeeTimesList from '@/components/Teesheets/publicTeeTimesList'

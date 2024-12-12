@@ -145,5 +145,79 @@ export async function POST(req: Request) {
     }
   }
 
+  // Handle organization.updated event
+  if (evt.type === 'organization.updated') {
+    try {
+      const supabase = createClientComponentClient()
+      
+      const { error } = await supabase
+        .from('organizations')
+        .update({
+          name: evt.data.name,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', evt.data.id)
+
+      if (error) {
+        console.error('Supabase update error:', error)
+        return new Response('Error updating organization', { status: 500 })
+      }
+
+      console.log('Successfully updated organization')
+    } catch (err) {
+      console.error('Error in organization.updated handler:', err)
+      return new Response('Internal server error', { status: 500 })
+    }
+  }
+
+  // Handle user.updated event
+  if (evt.type === 'user.updated') {
+    try {
+      const supabase = createClientComponentClient()
+      
+      const { error } = await supabase
+        .from('users')
+        .update({
+          email: evt.data.email_addresses[0]?.email_address,
+          first_name: evt.data.first_name,
+          last_name: evt.data.last_name,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', evt.data.id)
+
+      if (error) {
+        console.error('Supabase update error:', error)
+        return new Response('Error updating user', { status: 500 })
+      }
+
+      console.log('Successfully updated user')
+    } catch (err) {
+      console.error('Error in user.updated handler:', err)
+      return new Response('Internal server error', { status: 500 })
+    }
+  }
+
+  // Handle user.deleted event
+  if (evt.type === 'user.deleted') {
+    try {
+      const supabase = createClientComponentClient()
+      
+      const { error } = await supabase
+        .from('users')
+        .delete()
+        .eq('id', evt.data.id)
+
+      if (error) {
+        console.error('Supabase delete error:', error)
+        return new Response('Error deleting user', { status: 500 })
+      }
+
+      console.log('Successfully deleted user')
+    } catch (err) {
+      console.error('Error in user.deleted handler:', err)
+      return new Response('Internal server error', { status: 500 })
+    }
+  }
+
   return new Response('Webhook received', { status: 200 })
 }

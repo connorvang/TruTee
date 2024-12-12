@@ -105,8 +105,7 @@ export default async function OrganizationPage({ params }: PageProps) {
           {orgData.golf_course ? (
             <TeeTimesList 
               organizationId={orgData.id} 
-              initialTeeTimes={initialData.teeTimes}
-              initialNumberOfSimulators={initialData.numberOfSimulators}
+              initialTeeTimes={Array.isArray(initialData.teeTimes) ? initialData.teeTimes : []}
             />
           ) : (
             <SimulatorTimesList 

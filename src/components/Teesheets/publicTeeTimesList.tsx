@@ -1,7 +1,6 @@
 "use client"
 
-import { ChevronLeft, ChevronRight, Users, ChevronDown, CarFront, LandPlot, FlagIcon, Icon, Flag } from 'lucide-react'
-import { golfDriver } from '@lucide/lab'
+import { ChevronLeft, ChevronRight, Users, ChevronDown, CarFront, LandPlot, FlagIcon, Flag } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { format } from "date-fns"
 import { BookingModal } from '../Booking/teetimeBookingModal'
@@ -42,7 +41,6 @@ const getWeekNumber = (date: Date): number => {
 interface TeeTimesListProps {
   organizationId: string;
   initialTeeTimes: TeeTime[];
-  initialNumberOfSimulators: number;
 }
 
 const Skeleton = () => (

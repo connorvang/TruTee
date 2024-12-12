@@ -127,29 +127,18 @@ export async function POST(req: Request) {
     try {
       const supabase = createClientComponentClient()
       
-      // First delete: tee time settings
-      const { error: settingsError } = await supabase
-        .from('tee_time_settings')
-        .delete()
-        .eq('organization_id', evt.data.id)
-
-      if (settingsError) {
-        console.error('Supabase tee time settings delete error:', settingsError)
-        return new Response('Error deleting tee time settings', { status: 500 })
-      }
-
-      // Then delete: organization
-      const { error: orgError } = await supabase
+      // Delete organization (cascade will handle related tee_time_settings)
+      const { error } = await supabase
         .from('organizations')
         .delete()
         .eq('id', evt.data.id)
 
-      if (orgError) {
-        console.error('Supabase organization delete error:', orgError)
+      if (error) {
+        console.error('Supabase delete error:', error)
         return new Response('Error deleting organization', { status: 500 })
       }
 
-      console.log('Successfully deleted organization and tee time settings')
+      console.log('Successfully deleted organization')
     } catch (err) {
       console.error('Error in organization.deleted handler:', err)
       return new Response('Internal server error', { status: 500 })

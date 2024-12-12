@@ -4,10 +4,11 @@ import { useUser } from '@clerk/nextjs';
 import { useEffect, useState } from 'react';
 import { getReservations } from '@/actions/getReservations';
 import { format, differenceInMinutes } from 'date-fns';
-import { Users, CarFront, Footprints, Flag } from 'lucide-react';
+import { Users, CarFront, Footprints, Flag, Pencil } from 'lucide-react';
 import Image from 'next/image';
 import { DeleteBookingDialog } from '@/components/Booking/DeleteBookingDialog';
 import { Button } from '../ui/button';
+import { EditTeetimeModal } from '@/components/Booking/editTeetimeModal';
 
 interface Booking {
   id: string;
@@ -47,6 +48,7 @@ export default function UserBookingsClient() {
   const [error, setError] = useState<string | null>(null);
   const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
 
   useEffect(() => {
     if (user) {
@@ -59,11 +61,11 @@ export default function UserBookingsClient() {
 
   // Add these filtering functions
   const simulatorBookings = bookings.filter(booking => 
-    booking.tee_time_bookings.some(tb => tb.tee_times.simulator)
+    booking.tee_time_bookings?.[0]?.tee_times?.simulator
   );
   
   const courseBookings = bookings.filter(booking => 
-    !booking.tee_time_bookings.some(tb => tb.tee_times.simulator)
+    booking.tee_time_bookings?.[0]?.tee_times && !booking.tee_time_bookings[0].tee_times.simulator
   );
 
   const handleDeleteComplete = () => {
@@ -106,7 +108,10 @@ export default function UserBookingsClient() {
                       return (
                         <div key={booking.id} className="flex w-full items-center border-b px-6 py-4 border-gray-100">
                           <div className="w-56 pr-4 text-sm font-medium">
-                            {format(startTime, 'EEE, MMM do @ h:mmaa')}
+                            {booking.tee_time_bookings?.[0]?.tee_times?.start_time ? 
+                              format(new Date(booking.tee_time_bookings[0].tee_times.start_time), 'EEE, MMM do @ h:mmaa')
+                              : 'Time not available'
+                            }
                           </div>
                           
                           <div className="flex-1 flex items-center gap-4">
@@ -129,6 +134,7 @@ export default function UserBookingsClient() {
                             <div className='w-32 px-4 flex justify-end'>
                             <Button
                             variant="destructive"
+                            size="sm"
                             onClick={() => {
                               console.log('Selected Booking:', booking);
                               console.log('Tee Time Details:', {
@@ -178,7 +184,10 @@ export default function UserBookingsClient() {
                     courseBookings.map((booking) => (
                       <div key={booking.id} className="flex w-full items-center border-b px-6 py-4 border-gray-100">
                         <div className="w-56 pr-4 text-sm font-medium">
-                          {format(new Date(booking.tee_time_bookings[0].tee_times.start_time), 'EEE, MMM do @ h:mmaa')}
+                          {booking.tee_time_bookings?.[0]?.tee_times?.start_time ? 
+                            format(new Date(booking.tee_time_bookings[0].tee_times.start_time), 'EEE, MMM do @ h:mmaa')
+                            : 'Time not available'
+                          }
                         </div>
                         
                         <div className="flex-1 flex justify-between items-center">
@@ -222,17 +231,24 @@ export default function UserBookingsClient() {
                             )}
                             {booking.has_cart ? 'Cart' : 'Walking'}
                           </div>
-                          <div className='w-32 px-4 flex justify-end'>
+                          <div className='w-32 px-4 flex justify-end gap-2'>
+                            {!booking.tee_time_bookings[0].tee_times.simulator && (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => {
+                                  setSelectedBooking(booking);
+                                  setIsEditDialogOpen(true);
+                                }}
+                                className="text-sm"
+                              >
+                                Edit
+                              </Button>
+                            )}
                             <Button
                               variant="destructive"
+                              size="sm"
                               onClick={() => {
-                                console.log('Selected Booking:', booking);
-                                console.log('Tee Time Details:', {
-                                  id: booking.tee_time_bookings[0].teetime_id,
-                                  available_spots: booking.tee_time_bookings[0].tee_times.available_spots,
-                                  booked_spots: booking.tee_time_bookings[0].tee_times.booked_spots,
-                                  consecutive_slots: booking.tee_time_bookings[0].tee_times.consecutive_slots,
-                                });
                                 setSelectedBooking(booking);
                                 setIsDeleteDialogOpen(true);
                               }}
@@ -269,6 +285,28 @@ export default function UserBookingsClient() {
             guests: selectedBooking.guests,
           }}
           onDeleteComplete={handleDeleteComplete}
+        />
+      )}
+      {selectedBooking && (
+        <EditTeetimeModal
+          isOpen={isEditDialogOpen}
+          onClose={() => {
+            setIsEditDialogOpen(false);
+            setSelectedBooking(null);
+          }}
+          booking={{
+            id: selectedBooking.id,
+            number_of_holes: selectedBooking.number_of_holes,
+            has_cart: selectedBooking.has_cart,
+            guests: selectedBooking.guests,
+          }}
+          teeTime={{
+            id: selectedBooking.tee_time_bookings[0].teetime_id,
+            start_time: selectedBooking.tee_time_bookings[0].tee_times.start_time,
+            available_spots: selectedBooking.tee_time_bookings[0].tee_times.available_spots,
+            booked_spots: selectedBooking.tee_time_bookings[0].tee_times.booked_spots,
+          }}
+          onEditComplete={handleDeleteComplete}
         />
       )}
     </div>

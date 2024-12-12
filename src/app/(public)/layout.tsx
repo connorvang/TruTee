@@ -3,6 +3,7 @@ import Link from 'next/link'
 import { SignInButton, SignUpButton, SignedIn, SignedOut, UserButton } from '@clerk/nextjs'
 import { Button } from '@/components/ui/button'
 import Image from 'next/image'
+import { UserButtonMenu } from '@/components/user-button-menu'
 
 
 
@@ -39,13 +40,7 @@ export default function RootLayout({
               </SignUpButton>
               </SignedOut>
               <SignedIn>
-                <Button variant="ghost" size="sm" asChild>
-                  <Link href="/reservations">Reservations</Link>
-                </Button>
-                <Button variant="ghost" size="sm" asChild>
-                  <Link href="/admin">Admin</Link>
-                </Button>
-                <UserButton showName={true} />
+                <UserButtonMenu />
               </SignedIn>
             </div>
           </div>

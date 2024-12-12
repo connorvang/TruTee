@@ -1,6 +1,6 @@
 "use client"
 
-import { ChevronLeft, ChevronRight, Users, ChevronDown, CarFront, LandPlot, FlagIcon, Icon } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Users, ChevronDown, CarFront, LandPlot, FlagIcon, Icon, Flag } from 'lucide-react'
 import { golfDriver } from '@lucide/lab'
 import { useEffect, useState } from 'react'
 import { format } from "date-fns"
@@ -277,13 +277,13 @@ export default function TeeTimesList({
                   return (
                     <div key={item.id}>
                       <SignedIn>
-                        <Button variant="ghost" size="lg" className="flex w-full items-center rounded-none border-b px-6 py-4 border-gray-100 font-normal" onClick={() => handleBookingClick(item)}>
+                        <Button variant="ghost" size="lg" className="flex w-full items-center rounded-none border-b px-6 py-6 border-gray-100 font-normal" onClick={() => handleBookingClick(item)}>
                           <div className="w-20 pr-4 text-sm font-medium text-right">
                             {format(new Date(item.start_time), 'h:mm a')}
                           </div>
                           <div className="flex-1 flex justify-between items-center">
                             <div className="flex items-center gap-4">
-                              <span className="flex items-center justify-end gap-2 w-full px-4 text-sm text-black">
+                              <span className="flex items-center align-middle justify-end gap-2 w-full px-4 text-sm text-black">
                                 <Users size={16} /> {availableSpots} players
                               </span>
                             </div>
@@ -292,7 +292,7 @@ export default function TeeTimesList({
                             <CarFront size={16} /> ${item.cart_fee_18?.toFixed(2) ?? 0}
                           </div>
                           <div className="flex items-center justify-end gap-2 w-32 px-4 text-sm text-black text-right">
-                            <Icon iconNode={golfDriver} /> ${item.green_fee_18?.toFixed(2) ?? 0}
+                            <Flag size={16} /> ${item.green_fee_18?.toFixed(2) ?? 0}
                           </div>
                         </Button>
                       </SignedIn>

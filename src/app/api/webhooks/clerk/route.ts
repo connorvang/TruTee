@@ -122,5 +122,39 @@ export async function POST(req: Request) {
     }
   }
 
+  // Handle organization.deleted event
+  if (evt.type === 'organization.deleted') {
+    try {
+      const supabase = createClientComponentClient()
+      
+      // First delete: tee time settings
+      const { error: settingsError } = await supabase
+        .from('tee_time_settings')
+        .delete()
+        .eq('organization_id', evt.data.id)
+
+      if (settingsError) {
+        console.error('Supabase tee time settings delete error:', settingsError)
+        return new Response('Error deleting tee time settings', { status: 500 })
+      }
+
+      // Then delete: organization
+      const { error: orgError } = await supabase
+        .from('organizations')
+        .delete()
+        .eq('id', evt.data.id)
+
+      if (orgError) {
+        console.error('Supabase organization delete error:', orgError)
+        return new Response('Error deleting organization', { status: 500 })
+      }
+
+      console.log('Successfully deleted organization and tee time settings')
+    } catch (err) {
+      console.error('Error in organization.deleted handler:', err)
+      return new Response('Internal server error', { status: 500 })
+    }
+  }
+
   return new Response('Webhook received', { status: 200 })
 }

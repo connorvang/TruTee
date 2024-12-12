@@ -110,7 +110,6 @@ export default async function OrganizationPage({ params }: PageProps) {
           ) : (
             <SimulatorTimesList 
               organizationId={orgData.id} 
-              initialTeeTimes={initialData}
             />
           )}
         </div>

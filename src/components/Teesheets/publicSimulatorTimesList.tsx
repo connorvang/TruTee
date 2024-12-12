@@ -78,16 +78,15 @@ const Skeleton = () => (
 
 interface SimulatorTimesListProps {
   organizationId: string
-  initialTeeTimes: TeeTimes
 }
 
 export default function SimulatorTimesList({ 
-  organizationId, 
-  initialTeeTimes 
+  organizationId
 }: SimulatorTimesListProps) {
-  const [date, setDate] = useState<Date>(new Date())
-  const [teeTimes, setTeeTimes] = useState<TeeTimes>(initialTeeTimes)
-  const [loading, setLoading] = useState(false)
+  const [date, setDate] = useState<Date | undefined>(new Date())
+  const [teeTimes, setTeeTimes] = useState<{ [key: number]: TeeTime[] }>({})
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<Error | null>(null)
   const [selectedDay, setSelectedDay] = useState<string>("");
   const [selectedTeeTime, setSelectedTeeTime] = useState<TeeTime | null>(null)
   const [isBookingModalOpen, setIsBookingModalOpen] = useState(false)
@@ -144,22 +143,26 @@ export default function SimulatorTimesList({
   }, [date, teeTimes, intervalMinutes]);
 
   useEffect(() => {
-    if (!date || !organizationId) return
-
-    async function updateTeeTimes() {
-      setLoading(true)
-      try {
-        const response = await getSimulatorTimes(date, organizationId)
-        setTeeTimes(response.teeTimes)
-      } catch (error) {
-        console.error('Failed to fetch tee times:', error)
-      } finally {
-        setLoading(false)
-      }
+    if (!date || !organizationId) {
+      setLoading(false);
+      return;
     }
 
-    updateTeeTimes()
-  }, [date, organizationId])
+    const fetchSimulatorTimes = async () => {
+      setLoading(true);
+      try {
+        const response = await getSimulatorTimes(date, organizationId);
+        setTeeTimes(response.teeTimes);
+        setError(null);
+      } catch (err) {
+        setError(err instanceof Error ? err : new Error('Failed to fetch simulator times'));
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchSimulatorTimes();
+  }, [date, organizationId]);
 
   const getWeekDates = (currentDate: Date) => {
     // Clone the date to avoid modifying the original

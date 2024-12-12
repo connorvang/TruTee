@@ -15,7 +15,7 @@ import { cn } from "@/lib/utils"
 import WeatherInfo from '../getWeather'
 import { useUser } from '@clerk/nextjs'
 import { DeleteBookingDialog } from '../Booking/DeleteBookingDialog'
-import { getSimulatorTimes, TeeTimes } from '@/actions/getSimulatorTimes'
+import { getSimulatorTimes } from '@/actions/getSimulatorTimes'
 
 // Helper function to get week number
 const getWeekNumber = (date: Date): number => {
@@ -42,6 +42,11 @@ interface Booking {
   id: string;
   user_id: string;
   guests: number;
+  users: {
+    handicap: number;
+    first_name: string;
+    last_name: string;
+  }
 }
 
 interface TeeTime {
@@ -58,6 +63,11 @@ interface TeeTime {
     bookings: {
       id: string;
       user_id: string;
+      users: {
+        handicap: number;
+        first_name: string;
+        last_name: string;
+      }
     }
   }[];
 }
@@ -96,6 +106,7 @@ export default function SimulatorTimesList({
   const [nowPosition, setNowPosition] = useState<number | null>(null);
   const [intervalMinutes, setIntervalMinutes] = useState<number>(30);
   const { user } = useUser();
+  const currentDateTime = new Date();
 
   useEffect(() => {
     setIntervalMinutes(30);
@@ -203,21 +214,21 @@ export default function SimulatorTimesList({
   };
 
   const getDateFromDay = (dayShort: string) => {
-  const targetDate = date || new Date();
-  const day = targetDate.getDay();
-  const diff = -day; // Adjust to get Sunday
-  const startOfWeek = new Date(targetDate);
-  startOfWeek.setDate(targetDate.getDate() + diff);
-  
-  const daysMap: { [key: string]: number } = {
-    "Sun": 0, "Mon": 1, "Tue": 2, "Wed": 3, 
-    "Thu": 4, "Fri": 5, "Sat": 6
+    const targetDate = date || new Date();
+    const day = targetDate.getDay();
+    const diff = -day; // Adjust to get Sunday
+    const startOfWeek = new Date(targetDate);
+    startOfWeek.setDate(targetDate.getDate() + diff);
+    
+    const daysMap: { [key: string]: number } = {
+      "Sun": 0, "Mon": 1, "Tue": 2, "Wed": 3, 
+      "Thu": 4, "Fri": 5, "Sat": 6
+    };
+    
+    const newDate = new Date(startOfWeek);
+    newDate.setDate(startOfWeek.getDate() + daysMap[dayShort]);
+    return newDate;
   };
-  
-  const newDate = new Date(startOfWeek);
-  newDate.setDate(startOfWeek.getDate() + daysMap[dayShort]);
-  return newDate;
-};
 
   const handleBookingClick = (item: TeeTime) => {
     const availableSlots: TeeTime[] = [];
@@ -229,11 +240,7 @@ export default function SimulatorTimesList({
       if (totalDuration >= 180) break; // Stop if we reach 3 hours
       if (slot.tee_time_bookings.length > 0) break; // Stop if there's a booking
 
-      availableSlots.push({
-        ...slot,
-        available_spots: 1,
-        booked_spots: 0
-      });
+      availableSlots.push(slot as TeeTime);
       totalDuration += (new Date(slot.end_time).getTime() - new Date(slot.start_time).getTime()) / 60000;
     }
 
@@ -268,8 +275,6 @@ export default function SimulatorTimesList({
   };
 
   const simulatorCount = Object.keys(teeTimes).length;
-
-  const currentDateTime = new Date();
 
   return (
     <div className="p-0">
@@ -319,11 +324,8 @@ export default function SimulatorTimesList({
         </div>
 
         <div className="flex items-center gap-8">
-
           <WeatherInfo />
-
           <Separator orientation="vertical" className="h-4" />
-          
           <div className="flex items-center gap-4">
             <div className="flex items-center gap-2">
               <Button variant="ghost" className="w-8 h-8" onClick={handlePreviousWeek}>
@@ -354,6 +356,8 @@ export default function SimulatorTimesList({
             </TabsTrigger>
           ))}
         </TabsList>
+      
+      <div className="flex flex-col p-1 bg-gray-100 rounded-lg">
 
       <div className="flex flex-1 items-center flex-col justify-between px-1 py-1 bg-gray-100 rounded-lg">  
         {simulatorCount > 0 && (
@@ -369,6 +373,7 @@ export default function SimulatorTimesList({
             ))}
           </div>
         )}
+        </div>
 
         <div className="relative w-full bg-white rounded-md shadow-sm timeSlots">
           {loading ? (
@@ -380,7 +385,7 @@ export default function SimulatorTimesList({
           ) : !teeTimes || Object.keys(teeTimes).length === 0 || Object.values(teeTimes).every(times => !times || times.length === 0) ? (
             <div className="flex flex-col items-center justify-center gap-4 py-16 text-gray-500">
               <LandPlot size={32} />
-              No available sim times for this date.
+              No sim times available for this date.
             </div>
           ) : (
             <>
@@ -419,17 +424,15 @@ export default function SimulatorTimesList({
                       {times.map((item: TeeTime, index: number) => {
                         if (skipSlots > 0) {
                           skipSlots--;
-                          return null; // Skip rendering this slot
+                          return null;
                         }
 
                         const bookingData = item.tee_time_bookings[0]?.bookings;
                         const isBooked = bookingData !== undefined;
 
-                        // Check if the tee time is more than 30 minutes in the past
                         const startTime = new Date(item.start_time);
                         const isPast = (currentDateTime.getTime() - startTime.getTime()) > 30 * 60 * 1000;
 
-                        // Check for consecutive bookings
                         if (isBooked) {
                           let consecutiveCount = 1;
                           for (let i = index + 1; i < times.length; i++) {
@@ -440,7 +443,7 @@ export default function SimulatorTimesList({
                               break;
                             }
                           }
-                          skipSlots = consecutiveCount - 1; // Set slots to skip
+                          skipSlots = consecutiveCount - 1;
                         }
 
                         return (
@@ -520,7 +523,7 @@ export default function SimulatorTimesList({
             />
           )}
         </div>
-        </div>
+      </div>
       </Tabs>
     </div>
   )

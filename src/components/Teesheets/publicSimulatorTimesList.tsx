@@ -149,8 +149,8 @@ export default function SimulatorTimesList({
     async function updateTeeTimes() {
       setLoading(true)
       try {
-        const newTeeTimes = await getSimulatorTimes(date, organizationId)
-        setTeeTimes(newTeeTimes)
+        const response = await getSimulatorTimes(date, organizationId)
+        setTeeTimes(response.teeTimes)
       } catch (error) {
         console.error('Failed to fetch tee times:', error)
       } finally {
@@ -378,10 +378,10 @@ export default function SimulatorTimesList({
                 <Skeleton key={idx} />
               ))}
             </div>
-          ) : Object.keys(teeTimes).length === 0 ? (
+          ) : !teeTimes || Object.keys(teeTimes).length === 0 || Object.values(teeTimes).every(times => !times || times.length === 0) ? (
             <div className="flex flex-col items-center justify-center gap-4 py-16 text-gray-500">
               <LandPlot size={32} />
-              No tee times available for this date.
+              No available sim times for this date.
             </div>
           ) : (
             <>
@@ -410,9 +410,10 @@ export default function SimulatorTimesList({
                 </div>
 
                 {Object.entries(teeTimes).map(([simulator, times]) => {
-                  if (times.length === 0) return null; // Skip rendering if no tee times
+                  if (!Array.isArray(times)) return null;
+                  if (times.length === 0) return null;
 
-                  let skipSlots = 0; // Track slots to skip for consecutive bookings
+                  let skipSlots = 0;
 
                   return (
                     <div key={simulator} className="flex flex-1 flex-col">

@@ -100,7 +100,7 @@ export default function SimulatorTimesList() {
   const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null)
   const [nowPosition, setNowPosition] = useState<number | null>(null);
   const [intervalMinutes, setIntervalMinutes] = useState<number>(30);
-  const [teeTimes, setTeeTimes] = useState<{ [simulator: number]: TeeTime[] }>({});
+  const [teeTimes, setTeeTimes] = useState<{ [key: number]: TeeTime[] }>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
   const { organization } = useOrganization();
@@ -161,8 +161,8 @@ export default function SimulatorTimesList() {
     const fetchSimulatorTimes = async () => {
       setLoading(true);
       try {
-        const groupedTeeTimes = await getSimulatorTimes(date, activeOrganization);
-        setTeeTimes(groupedTeeTimes);
+        const response = await getSimulatorTimes(date, activeOrganization);
+        setTeeTimes(response.teeTimes);
         setError(null);
       } catch (err) {
         setError(err instanceof Error ? err : new Error('Failed to fetch simulator times'));
@@ -362,10 +362,10 @@ export default function SimulatorTimesList() {
                 <Skeleton key={idx} />
               ))}
             </div>
-          ) : Object.keys(teeTimes).length === 0 ? (
+          ) : !teeTimes || Object.keys(teeTimes).length === 0 || Object.values(teeTimes).every(times => !times || times.length === 0) ? (
             <div className="flex flex-col items-center justify-center gap-4 py-16 text-gray-500">
               <LandPlot size={32} />
-              No tee times available for this date.
+              No sim times available for this date.
             </div>
           ) : (
             <>
@@ -394,6 +394,7 @@ export default function SimulatorTimesList() {
                 </div>
 
                 {Object.entries(teeTimes).map(([simulator, times]) => {
+                  if (!Array.isArray(times)) return null;
                   if (times.length === 0) return null;
 
                   let skipSlots = 0;

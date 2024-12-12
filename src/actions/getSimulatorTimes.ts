@@ -32,13 +32,17 @@ export interface TeeTimes {
 export async function getSimulatorTimes(date: Date, organizationId: string) {
   const supabase = createServerComponentClient({ cookies })
   
-  // Create start/end dates in local timezone
+  // Get timezone offset in minutes
+  const tzOffset = date.getTimezoneOffset()
+  
+  // Create start/end dates adjusted for timezone
   const start = new Date(
     date.getFullYear(),
     date.getMonth(),
     date.getDate(),
     0, 0, 0, 0
   )
+  start.setMinutes(start.getMinutes() - tzOffset)
   
   const end = new Date(
     date.getFullYear(),
@@ -46,6 +50,15 @@ export async function getSimulatorTimes(date: Date, organizationId: string) {
     date.getDate(),
     23, 59, 59, 999
   )
+  end.setMinutes(end.getMinutes() - tzOffset)
+
+  console.log('Query Parameters:', {
+    startTime: start.toISOString(),
+    endTime: end.toISOString(),
+    localStartTime: start.toString(),
+    localEndTime: end.toString(),
+    tzOffset
+  })
 
   try {
     // Get number of simulators first
@@ -76,6 +89,13 @@ export async function getSimulatorTimes(date: Date, organizationId: string) {
       .gte('start_time', start.toISOString())
       .lte('start_time', end.toISOString())
       .order('start_time', { ascending: true })
+
+    console.log('Returned Tee Times:', teeTimesData?.map(time => ({
+      id: time.id,
+      startTime: time.start_time,
+      endTime: time.end_time,
+      simulator: time.simulator
+    })))
 
     if (error) throw error
 

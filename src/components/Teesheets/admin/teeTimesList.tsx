@@ -13,7 +13,7 @@ import { Breadcrumb, BreadcrumbItem, BreadcrumbList, BreadcrumbPage, BreadcrumbS
 import { Calendar } from "@/components/ui/calendar"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { cn } from "@/lib/utils"
-import { getTeeTimes } from '@/actions/getTeeTimes'
+import { getTeeTimes, TeeTime } from '@/actions/getTeeTimes'
 import { useOrganization } from '@clerk/nextjs'
 import WeatherInfo from '../../getWeather'
 
@@ -51,33 +51,6 @@ interface Booking {
   }
 }
 
-interface TeeTime {
-  id: string;
-  start_time: string;
-  end_time: string;
-  price: number;
-  green_fee_18: number;
-  green_fee_9: number;
-  cart_fee_18: number;
-  cart_fee_9: number;
-  available_spots: number;
-  booked_spots: number;
-  tee_time_bookings: {
-    bookings: {
-      id: string;
-      guests: number;
-      has_cart: boolean;
-      number_of_holes: number;
-      user_id: string;
-      users: {
-        handicap: number;
-        first_name: string;
-        last_name: string;
-      }
-    }
-  }[];
-}
-
 // Skeleton component
 const Skeleton = () => (
   <div className="flex items-center border-b px-6 py-2 border-gray-100 animate-pulse">
@@ -94,6 +67,14 @@ const Skeleton = () => (
     </div>
   </div>
 );
+
+// Add this helper function to convert 24h to 12h format
+const formatTo12Hour = (time24: string) => {
+  const [hours, minutes] = time24.split(':').map(Number);
+  const period = hours >= 12 ? 'PM' : 'AM';
+  const hours12 = hours % 12 || 12; // Convert 0 to 12 for midnight
+  return `${hours12}:${minutes.toString().padStart(2, '0')} ${period}`;
+};
 
 export default function TeeTimesList() {
   const [date, setDate] = useState<Date | undefined>(new Date());
@@ -120,7 +101,8 @@ export default function TeeTimesList() {
     const fetchTeeTimes = async () => {
       setLoading(true);
       try {
-        const { teeTimes, numberOfSimulators } = await getTeeTimes(date, activeOrganization);
+        const localDate = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+        const { teeTimes } = await getTeeTimes(localDate, activeOrganization);
         setTeeTimes(teeTimes);
         // Optionally handle numberOfSimulators if needed
         setError(null);
@@ -137,8 +119,8 @@ export default function TeeTimesList() {
   useEffect(() => {
     if (teeTimes.length < 2) return;
     
-    const time1 = new Date(teeTimes[0].start_time);
-    const time2 = new Date(teeTimes[1].start_time);
+    const time1 = new Date(`2000-01-01T${teeTimes[0].start_time}`);
+    const time2 = new Date(`2000-01-01T${teeTimes[1].start_time}`);
     const actualInterval = (time2.getTime() - time1.getTime()) / 60000;
     
     setIntervalMinutes(actualInterval);
@@ -160,8 +142,8 @@ export default function TeeTimesList() {
       }
 
       const now = new Date();
-      const firstTeeTime = new Date(teeTimes[0].start_time);
-      const lastTeeTime = new Date(teeTimes[teeTimes.length - 1].start_time);
+      const firstTeeTime = new Date(`${teeTimes[0].start_date}T${teeTimes[0].start_time}`);
+      const lastTeeTime = new Date(`${teeTimes[teeTimes.length - 1].start_date}T${teeTimes[teeTimes.length - 1].start_time}`);
 
       if (now < firstTeeTime || now > lastTeeTime) {
         setNowPosition(null);
@@ -385,7 +367,7 @@ export default function TeeTimesList() {
               {teeTimes.map((item) => (
                 <div key={item.id} className="flex items-center border-b px-6 py-2 border-gray-100">
                   <div className="w-20 pr-4 text-sm font-small text-right">
-                    {format(new Date(item.start_time), 'h:mm a')}
+                    {formatTo12Hour(item.start_time)}
                   </div>
                   <div className="w-20 pr-4 text-sm font-small text-gray-600 text-right">
                     ${item.green_fee_18?.toFixed(2) ?? 0}

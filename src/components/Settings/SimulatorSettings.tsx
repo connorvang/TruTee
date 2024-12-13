@@ -4,41 +4,9 @@ import { TeeTimeSettings } from "./teeTimesSettings";
 interface SimulatorSettingsProps {
     settings: TeeTimeSettings;
     handleChange: (newSettings: TeeTimeSettings) => void;
-  }
- // This component can be expanded with specific settings for simulators if needed
- export function SimulatorSettings({ settings, handleChange }: SimulatorSettingsProps) {
-    console.log("SimulatorSettings props:", settings);
+}
 
-    const generateTimesForSimulators = () => {
-        const times = [];
-        const startTime = new Date();
-        startTime.setHours(0, 0, 0, 0);
-        const endTime = new Date();
-        endTime.setHours(23, 59, 0, 0);
-
-        for (let sim = 1; sim <= settings.number_of_simulators; sim++) {
-            const currentTime = new Date(startTime);
-            
-            while (currentTime <= endTime) {
-                const endTimeSlot = new Date(currentTime);
-                // Ensure the end time is always 30 minutes after the start time
-                endTimeSlot.setMinutes(currentTime.getMinutes() + 30);
-                
-                times.push({
-                    start_time: currentTime.toISOString(),
-                    end_time: endTimeSlot.toISOString(),
-                    available_spots: 1,
-                    booked_spots: 0,
-                    simulator: sim,
-                    price: settings.price
-                });
-                currentTime.setMinutes(currentTime.getMinutes() + 30);
-            }
-        }
-        
-        return times;
-    };
-
+export function SimulatorSettings({ settings, handleChange }: SimulatorSettingsProps) {
     return (
         <>
             <li className="p-5 border-b border-gray-100">
@@ -76,8 +44,7 @@ interface SimulatorSettingsProps {
                                 const newValue = parseInt(e.target.value) || 0;
                                 handleChange({ 
                                     ...settings, 
-                                    number_of_simulators: newValue,
-                                    simulatorTimes: generateTimesForSimulators()
+                                    number_of_simulators: newValue
                                 });
                             }}
                             className="w-40"
@@ -87,4 +54,4 @@ interface SimulatorSettingsProps {
             </li>
         </>
     );
-  }
+}

@@ -52,6 +52,8 @@ interface Booking {
 interface TeeTime {
   id: string;
   start_time: string;
+  start_date: string;
+  end_date: string;
   end_time: string;
   price: number;
   available_spots: number;
@@ -161,7 +163,8 @@ export default function SimulatorTimesList() {
     const fetchSimulatorTimes = async () => {
       setLoading(true);
       try {
-        const response = await getSimulatorTimes(date, activeOrganization);
+        const localDate = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+        const response = await getSimulatorTimes(localDate, activeOrganization);
         setTeeTimes(response.teeTimes);
         setError(null);
       } catch (err) {
@@ -236,7 +239,7 @@ export default function SimulatorTimesList() {
 
     for (let i = startIndex; i < teeTimes[item.simulator].length; i++) {
       const slot = teeTimes[item.simulator][i];
-      if (totalDuration >= 180) break; // Stop if we reach 3 hours
+      if (totalDuration >= 180 || availableSlots.length >= 6) break; // Limit to 3 hours or 6 slots
       if (slot.tee_time_bookings.length > 0) break; // Stop if there's a booking
 
       availableSlots.push(slot as TeeTime);
@@ -356,6 +359,23 @@ export default function SimulatorTimesList() {
           ))}
         </TabsList>
         <div className="relative w-full bg-white rounded-md shadow-sm timeSlots">
+          <div className="sticky top-0 z-10 flex w-full h-10 bg-white border-b border-gray-100">
+            <div className="w-26 pr-4 text-sm font-small text-right"></div>
+            {simulatorCount > 0 && (
+          <div className="flex w-full pl-6 h-10 baysHeader">
+            <div className="w-20 pr-4 text-sm font-small text-right"></div>
+            {Object.keys(teeTimes).map((simulator, index) => (
+              <div
+                key={simulator}
+                className="flex flex-1 text-sm font-medium text-gray-900 justify-center items-center"
+              >
+                {`Bay ${index + 1}`}
+              </div>
+            ))}
+          </div>
+        )}
+          </div>
+
           {loading ? (
             <div className="flex flex-col">
               {Array.from({ length: 10 }).map((_, idx) => (

@@ -5,7 +5,9 @@ import { cookies } from 'next/headers'
 
 export interface TeeTime {
   id: string
+  start_date: string
   start_time: string
+  end_date: string
   end_time: string
   price: number
   green_fee_9: number
@@ -35,12 +37,8 @@ export interface TeeTime {
 export async function getTeeTimes(date: Date, organizationId: string) {
   const supabase = createServerComponentClient({ cookies })
   
-  const start = new Date(date)
-  start.setHours(0, 0, 0, 0)
-  
-  const end = new Date(date)
-  end.setHours(23, 59, 59, 999)
-
+  const localDate = new Date(date.getTime() + date.getTimezoneOffset() * 60000);
+  const dateString = localDate.toISOString().split('T')[0]  // "2024-12-19"
 
   const [teeTimesResponse, settingsResponse] = await Promise.all([
     supabase
@@ -65,8 +63,7 @@ export async function getTeeTimes(date: Date, organizationId: string) {
         )
       `)
       .eq('organization_id', organizationId)
-      .gte('start_time', start.toISOString())
-      .lte('start_time', end.toISOString())
+      .eq('start_date', dateString)
       .order('start_time', { ascending: true }),
 
     supabase

@@ -14,7 +14,9 @@ interface Booking {
     tee_times: {
       id: string;
       start_time: string;
+      start_date: string;
       end_time: string;
+      end_date: string;
       price: number;
       simulator: number;
       available_spots: number;
@@ -40,7 +42,9 @@ export async function getReservations(userId: string): Promise<Booking[]> {
         tee_times (
           id, 
           start_time, 
+          start_date,
           end_time, 
+          end_date,
           price, 
           simulator,
           available_spots,

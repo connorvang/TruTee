@@ -11,11 +11,9 @@ import { cookies } from 'next/headers'
 import { getTeeTimes } from '@/actions/getTeeTimes'
 
 
-interface PageProps {
-  params: {
-    id: string
-  }
-}
+type PageProps = {
+  params: Promise<{ id: string }>;
+};
 
 const OrganizationSkeleton = () => {
   return (
@@ -60,7 +58,7 @@ export default async function OrganizationPage({ params }: PageProps) {
   const { data: orgData } = await supabase
     .from('organizations')
     .select('*')
-    .eq('id', params.id)
+    .eq('id', (await params).id)
     .single()
 
   if (!orgData) {
@@ -69,8 +67,8 @@ export default async function OrganizationPage({ params }: PageProps) {
 
   // Get initial data based on organization type
   const initialData = orgData.golf_course 
-    ? await getTeeTimes(new Date(), params.id)
-    : await getSimulatorTimes(new Date(), params.id)
+    ? await getTeeTimes(new Date(), (await params).id)
+    : await getSimulatorTimes(new Date(), (await params).id)
 
   return (
     <div className="flex-1 flex flex-col lg:flex-row py-8 px-4 gap-8 w-full max-w-[1920px] mx-auto">

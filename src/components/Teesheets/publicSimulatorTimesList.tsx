@@ -51,7 +51,9 @@ interface Booking {
 
 interface TeeTime {
   id: string;
+  start_date: string;
   start_time: string;
+  end_date: string;
   end_time: string;
   price: number;
   available_spots: number;
@@ -162,7 +164,8 @@ export default function SimulatorTimesList({
     const fetchSimulatorTimes = async () => {
       setLoading(true);
       try {
-        const response = await getSimulatorTimes(date, organizationId);
+        const localDate = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+        const response = await getSimulatorTimes(localDate, organizationId);
         setTeeTimes(response.teeTimes);
         setError(null);
       } catch (err) {
@@ -237,7 +240,7 @@ export default function SimulatorTimesList({
 
     for (let i = startIndex; i < teeTimes[item.simulator].length; i++) {
       const slot = teeTimes[item.simulator][i];
-      if (totalDuration >= 180) break; // Stop if we reach 3 hours
+      if (totalDuration >= 180 || availableSlots.length >= 6) break; // Limit to 3 hours or 6 slots
       if (slot.tee_time_bookings.length > 0) break; // Stop if there's a booking
 
       availableSlots.push(slot as TeeTime);
@@ -430,7 +433,12 @@ export default function SimulatorTimesList({
                         const bookingData = item.tee_time_bookings[0]?.bookings;
                         const isBooked = bookingData !== undefined;
 
-                        const startTime = new Date(item.start_time);
+                        // Create a Date object for the start time using the item's date and time
+                        const [startYear, startMonth, startDay] = item.start_date.split('-').map(Number);
+                        const [hours, minutes, seconds] = item.start_time.split(':').map(Number);
+                        const startTime = new Date(startYear, startMonth - 1, startDay, hours, minutes, seconds);
+
+                        // Check if the time is more than 30 minutes in the past
                         const isPast = (currentDateTime.getTime() - startTime.getTime()) > 30 * 60 * 1000;
 
                         if (isBooked) {

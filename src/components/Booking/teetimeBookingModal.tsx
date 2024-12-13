@@ -7,7 +7,6 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { useToast } from "@/hooks/use-toast"
 import { useUser } from "@clerk/nextjs"
-import { Input } from "@/components/ui/input"
 
 interface BookingModalProps {
   isOpen: boolean
@@ -15,6 +14,7 @@ interface BookingModalProps {
   teeTime: {
     id: string
     start_time: string
+    start_date: string
     green_fee_18: number
     cart_fee_18: number
     available_spots: number
@@ -23,6 +23,14 @@ interface BookingModalProps {
   }
   onBookingComplete: () => void
 }
+
+// Add this helper function to convert 24h to 12h format
+const formatTo12Hour = (time24: string) => {
+  const [hours, minutes] = time24.split(':').map(Number);
+  const period = hours >= 12 ? 'PM' : 'AM';
+  const hours12 = hours % 12 || 12; // Convert 0 to 12 for midnight
+  return `${hours12}:${minutes.toString().padStart(2, '0')} ${period}`;
+};
 
 export function BookingModal({ isOpen, onClose, teeTime, onBookingComplete }: BookingModalProps) {
   const { user } = useUser()
@@ -119,7 +127,7 @@ export function BookingModal({ isOpen, onClose, teeTime, onBookingComplete }: Bo
         <DialogHeader>
           <DialogTitle>Book Tee Time</DialogTitle>
           <DialogDescription>
-            {format(new Date(teeTime.start_time), 'EEEE, MMMM d, yyyy h:mm a')}
+            {format(new Date(teeTime.start_date), 'MMM, d, yyyy')} {formatTo12Hour(teeTime.start_time)}
           </DialogDescription>
         </DialogHeader>
 

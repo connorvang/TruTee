@@ -22,6 +22,8 @@ interface Booking {
     tee_times: {
       id: string;
       start_time: string;
+      start_date: string;
+      end_date: string;
       end_time: string;
       price: number;
       simulator: number;
@@ -41,6 +43,14 @@ interface Booking {
     };
   }[];
 }
+
+// Add this helper function to convert 24h to 12h format
+const formatTo12Hour = (time24: string) => {
+  const [hours, minutes] = time24.split(':').map(Number);
+  const period = hours >= 12 ? 'PM' : 'AM';
+  const hours12 = hours % 12 || 12; // Convert 0 to 12 for midnight
+  return `${hours12}:${minutes.toString().padStart(2, '0')} ${period}`;
+};
 
 export default function UserBookingsClient() {
   const { user } = useUser();
@@ -101,15 +111,20 @@ export default function UserBookingsClient() {
                     <p className="p-4 text-gray-500">No simulator bookings found.</p>
                   ) : (
                     simulatorBookings.map((booking) => {
-                      const startTime = new Date(booking.tee_time_bookings[0].tee_times.start_time);
-                      const endTime = new Date(booking.tee_time_bookings[booking.tee_time_bookings.length - 1].tee_times.end_time);
+                      const startTime = new Date(
+                        `${booking.tee_time_bookings[0].tee_times.start_date}T${booking.tee_time_bookings[0].tee_times.start_time}`
+                      );
+                      const endTime = new Date(
+                        `${booking.tee_time_bookings[booking.tee_time_bookings.length - 1].tee_times.end_date}T${booking.tee_time_bookings[booking.tee_time_bookings.length - 1].tee_times.end_time}`
+                      );
                       const duration = differenceInMinutes(endTime, startTime);
 
                       return (
                         <div key={booking.id} className="flex w-full items-center border-b px-6 py-4 border-gray-100">
                           <div className="w-56 pr-4 text-sm font-medium">
+
                             {booking.tee_time_bookings?.[0]?.tee_times?.start_time ? 
-                              format(new Date(booking.tee_time_bookings[0].tee_times.start_time), 'EEE, MMM do @ h:mmaa')
+                              format(new Date(booking.tee_time_bookings[0].tee_times.start_date), 'MMM, d, yyyy') + ' ' + formatTo12Hour(booking.tee_time_bookings[0].tee_times.start_time)
                               : 'Time not available'
                             }
                           </div>
@@ -185,7 +200,7 @@ export default function UserBookingsClient() {
                       <div key={booking.id} className="flex w-full items-center border-b px-6 py-4 border-gray-100">
                         <div className="w-56 pr-4 text-sm font-medium">
                           {booking.tee_time_bookings?.[0]?.tee_times?.start_time ? 
-                            format(new Date(booking.tee_time_bookings[0].tee_times.start_time), 'EEE, MMM do @ h:mmaa')
+                              format(new Date(booking.tee_time_bookings[0].tee_times.start_date), 'MMM, d, yyyy') + ' ' + formatTo12Hour(booking.tee_time_bookings[0].tee_times.start_time)
                             : 'Time not available'
                           }
                         </div>
@@ -302,6 +317,7 @@ export default function UserBookingsClient() {
           }}
           teeTime={{
             id: selectedBooking.tee_time_bookings[0].teetime_id,
+            start_date: selectedBooking.tee_time_bookings[0].tee_times.start_date,
             start_time: selectedBooking.tee_time_bookings[0].tee_times.start_time,
             available_spots: selectedBooking.tee_time_bookings[0].tee_times.available_spots,
             booked_spots: selectedBooking.tee_time_bookings[0].tee_times.booked_spots,

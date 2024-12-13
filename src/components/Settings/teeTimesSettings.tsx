@@ -26,7 +26,9 @@ export interface TeeTimeSettings {
   cart_fee_9: number
   simulatorTimes: Array<{
     start_time: string;
+    start_date: string;
     end_time: string;
+    end_date: string;
     available_spots: number;
     booked_spots: number;
     simulator: number;
@@ -131,46 +133,45 @@ export default function TeeTimeSettings() {
     
     const daysToGenerate = settings.booking_days_in_advance;
     const startDate = addDays(startOfDay(new Date()), 1);
-    
-    // First, fetch existing booked tee times
-    const { data: existingTeeTimes, error: fetchError } = await supabase
-      .from('tee_times')
-      .select('start_time, simulator')
-      .eq('organization_id', activeOrganization)
-      .gte('start_time', startDate.toISOString())
-      .gt('booked_spots', 0);
-
-    if (fetchError) {
-      console.error('Error fetching existing tee times:', fetchError);
-      return;
-    }
-
-    // Create a Set of existing tee time strings with simulator number for efficient lookup
-    const existingTeeTimeSet = new Set(
-      existingTeeTimes?.map(tt => `${new Date(tt.start_time).toISOString()}-${tt.simulator}`) || []
-    );
-
     const teeTimesToInsert = [];
 
+    // Delete existing unbooked tee times for the days to be generated
     for (let day = 0; day < daysToGenerate; day++) {
       const currentDate = addDays(startDate, day);
-      
-      const startTime = new Date(`${currentDate.toDateString()} ${settings.first_tee_time}`);
-      const endTime = new Date(`${currentDate.toDateString()} ${settings.last_tee_time}`);
-      
-      for (let time = startTime; time <= endTime; time.setMinutes(time.getMinutes() + settings.interval_minutes)) {
-        const timeString = new Date(time).toISOString();
-        const endTimeString = new Date(time.getTime() + settings.interval_minutes * 60000).toISOString();
-        
-        if (settings.organization_type === 'simulator') {
-          // Generate slots for each simulator
-          for (let sim = 1; sim <= settings.number_of_simulators; sim++) {
-            const timeSimKey = `${timeString}-${sim}`;
-            if (!existingTeeTimeSet.has(timeSimKey)) {
+      const dateString = currentDate.toISOString().split('T')[0];
+
+      const { error: deleteError } = await supabase
+        .from('tee_times')
+        .delete()
+        .eq('organization_id', activeOrganization)
+        .eq('start_date', dateString)
+        .eq('booked_spots', 0);
+
+      if (deleteError) {
+        console.error('Delete error:', deleteError);
+        throw new Error('Failed to delete existing tee times');
+      }
+
+      // Log the current date being processed
+      console.log(`Generating tee times for date: ${dateString}`);
+
+      if (settings.organization_type === 'simulator') {
+        // For simulators, generate fixed 30-minute slots
+        for (let hour = 0; hour < 24; hour++) {
+          for (let minute = 0; minute < 60; minute += 30) {
+            const currentTime = `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
+            const nextHour = minute === 30 ? (hour + 1) % 24 : hour;
+            const nextMinute = minute === 30 ? 0 : 30;
+            const endTime = `${nextHour.toString().padStart(2, '0')}:${nextMinute.toString().padStart(2, '0')}`;
+
+            // Generate slots for each simulator
+            for (let sim = 1; sim <= settings.number_of_simulators; sim++) {
               teeTimesToInsert.push({
                 organization_id: activeOrganization,
-                start_time: timeString,
-                end_time: endTimeString,
+                start_date: dateString,
+                start_time: currentTime,
+                end_date: dateString,
+                end_time: endTime,
                 available_spots: 1,
                 booked_spots: 0,
                 simulator: sim,
@@ -180,36 +181,48 @@ export default function TeeTimeSettings() {
               });
             }
           }
-        } else {
-          // Regular golf course tee time
-          if (!existingTeeTimeSet.has(`${timeString}-null`)) {
-            teeTimesToInsert.push({
-              organization_id: activeOrganization,
-              start_time: timeString,
-              available_spots: 4,
-              booked_spots: 0,
-              simulator: null,
-              green_fee_18: settings.green_fee_18,
-              cart_fee_18: settings.cart_fee_18,
-              green_fee_9: settings.green_fee_9,
-              cart_fee_9: settings.cart_fee_9,
-              price: parseFloat(priceInput),
-              created_at: new Date().toISOString(),
-              updated_at: new Date().toISOString()
-            });
-          }
+        }
+      } else {
+        // Golf course logic remains the same
+        let currentTime = settings.first_tee_time.substring(0, 5);
+        const endTime = settings.last_tee_time.substring(0, 5);
+        
+        while (currentTime <= endTime) {
+          const [hours, minutes] = currentTime.split(':').map(Number);
+          const nextTime = new Date(2000, 0, 1, hours, minutes + settings.interval_minutes);
+          const endTimeString = `${nextTime.getHours().toString().padStart(2, '0')}:${
+            nextTime.getMinutes().toString().padStart(2, '0')}`;
+
+          teeTimesToInsert.push({
+            organization_id: activeOrganization,
+            start_date: dateString,
+            start_time: currentTime,
+            available_spots: 4,
+            booked_spots: 0,
+            simulator: null,
+            green_fee_18: settings.green_fee_18,
+            cart_fee_18: settings.cart_fee_18,
+            green_fee_9: settings.green_fee_9,
+            cart_fee_9: settings.cart_fee_9,
+            price: parseFloat(priceInput),
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+          });
+
+          currentTime = endTimeString;
         }
       }
     }
 
-    // Insert in batches of 1000
-    for (let i = 0; i < teeTimesToInsert.length; i += 1000) {
-      const batch = teeTimesToInsert.slice(i, i + 1000);
+    // Insert in smaller batches to avoid timeouts
+    for (let i = 0; i < teeTimesToInsert.length; i += 50) {
+      const batch = teeTimesToInsert.slice(i, i + 50);
       const { error: insertError } = await supabase
         .from('tee_times')
         .insert(batch);
 
       if (insertError) {
+        console.error('Insert error:', insertError);
         throw new Error('Failed to insert tee times');
       }
     }
@@ -236,22 +249,17 @@ export default function TeeTimeSettings() {
     }
 
     try {
-      const tzOffset = -(new Date().getTimezoneOffset() / 60);
-      const tzString = tzOffset >= 0
-        ? `-${tzOffset.toString().padStart(2, '0')}`
-        : `+${Math.abs(tzOffset).toString().padStart(2, '0')}`;
-
       const settingsToSave = {
         interval_minutes: settings.interval_minutes,
-        first_tee_time: `${settings.first_tee_time}:00${tzString}`,
-        last_tee_time: `${settings.last_tee_time}:00${tzString}`,
+        first_tee_time: settings.first_tee_time.substring(0, 5),
+        last_tee_time: settings.last_tee_time.substring(0, 5),
         booking_days_in_advance: settings.booking_days_in_advance,
         price: price,
         green_fee_18: settings.green_fee_18,
         cart_fee_18: settings.cart_fee_18,
         green_fee_9: settings.green_fee_9,
         cart_fee_9: settings.cart_fee_9,
-        number_of_simulators: settings.number_of_simulators, // Ensure this is included
+        number_of_simulators: settings.number_of_simulators,
         updated_at: new Date().toISOString(),
       };
 
@@ -287,11 +295,13 @@ export default function TeeTimeSettings() {
 
       // Delete existing unbooked tee times
       const tomorrow = addDays(startOfDay(new Date()), 1);
+      const tomorrowString = tomorrow.toISOString().split('T')[0]; // "2024-12-19"
+      
       const { error: deleteError } = await supabase
         .from('tee_times')
         .delete()
         .eq('organization_id', activeOrganization)
-        .gte('start_time', tomorrow.toISOString())
+        .gte('start_date', tomorrowString)
         .eq('booked_spots', 0);
 
       if (deleteError) {
@@ -312,8 +322,8 @@ export default function TeeTimeSettings() {
           updated_at: new Date().toISOString()
         })
         .eq('organization_id', activeOrganization)
-        .gte('start_time', tomorrow.toISOString())
-        .eq('booked_spots', 0); // Only update price for unbooked tee times
+        .gte('start_date', tomorrowString)
+        .eq('booked_spots', 0);
 
       if (updateError) {
         console.error('Update error:', updateError);

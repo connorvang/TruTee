@@ -5,7 +5,9 @@ import { cookies } from 'next/headers'
 
 interface TeeTime {
     id: string
+    start_date: string
     start_time: string
+    end_date: string
     end_time: string
     price: number
     booked_spots: number
@@ -32,11 +34,9 @@ export interface TeeTimes {
 export async function getSimulatorTimes(date: Date, organizationId: string) {
   const supabase = createServerComponentClient({ cookies })
   
-  const start = new Date(date)
-  start.setHours(0, 0, 0, 0)
-  
-  const end = new Date(date)
-  end.setHours(23, 59, 59, 999)
+  // Adjust for local timezone
+  const localDate = new Date(date.getTime() + date.getTimezoneOffset() * 60000);
+  const dateString = localDate.toISOString().split('T')[0];
 
   try {
     // Get number of simulators first
@@ -64,8 +64,7 @@ export async function getSimulatorTimes(date: Date, organizationId: string) {
         )
       `)
       .eq('organization_id', organizationId)
-      .gte('start_time', start.toISOString())
-      .lte('start_time', end.toISOString())
+      .eq('start_date', dateString)
       .order('start_time', { ascending: true })
 
     if (error) throw error
@@ -80,7 +79,6 @@ export async function getSimulatorTimes(date: Date, organizationId: string) {
 
     return { teeTimes: organizedTeeTimes, error: null }
   } catch (error) {
-    console.error('Error:', error)
     return { teeTimes: {}, error }
   }
 } 

@@ -11,8 +11,9 @@ import { getTeeTimes } from '@/actions/getTeeTimes'
 
 
 type PageProps = {
-  params: { id: string };
-};
+  params: { id: string }
+  searchParams: { [key: string]: string | string[] | undefined }
+}
 
 const OrganizationSkeleton = () => {
   return (
@@ -51,14 +52,16 @@ const OrganizationSkeleton = () => {
   )
 }
 
-export default async function OrganizationPage({ params }: PageProps) {
+export default async function OrganizationPage({ params, searchParams }: PageProps) {
   const supabase = await createClient()
+  const { id } = await params
+  const searchParamsResolved = await searchParams
 
   try {
     const { data: orgData, error } = await supabase
       .from('organizations')
       .select('*')
-      .eq('id', params.id)
+      .eq('id', id)
       .single()
 
     if (error || !orgData) {
@@ -67,8 +70,8 @@ export default async function OrganizationPage({ params }: PageProps) {
 
     // Get initial data based on organization type
     const initialData = orgData.golf_course 
-      ? await getTeeTimes(new Date(), params.id)
-      : await getSimulatorTimes(new Date(), params.id)
+      ? await getTeeTimes(new Date(), id)
+      : await getSimulatorTimes(new Date(), id)
 
     return (
       <div className="flex-1 flex flex-col lg:flex-row py-8 px-4 gap-8 w-full max-w-[1920px] mx-auto">

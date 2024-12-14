@@ -10,11 +10,6 @@ import { createClient } from '@/lib/supabase/server'
 import { getTeeTimes } from '@/actions/getTeeTimes'
 
 
-type PageProps = {
-  params: { id: string }
-  searchParams: { [key: string]: string | string[] | undefined }
-}
-
 const OrganizationSkeleton = () => {
   return (
     <div className="min-h-screen flex flex-col md:flex-row">
@@ -52,10 +47,13 @@ const OrganizationSkeleton = () => {
   )
 }
 
-export default async function OrganizationPage({ params, searchParams }: PageProps) {
+export default async function OrganizationPage({ 
+  params,
+}: { 
+  params: Promise<{ id: string }>;
+}) {
   const supabase = await createClient()
-  const { id } = await params
-  const searchParamsResolved = await searchParams
+  const { id } = await params  // Await the params to extract id
 
   try {
     const { data: orgData, error } = await supabase

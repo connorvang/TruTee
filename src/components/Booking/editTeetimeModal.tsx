@@ -11,6 +11,7 @@ import { Drawer, DrawerHeader, DrawerContent, DrawerTitle } from '@/components/u
 import { Separator } from '@/components/ui/separator'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useIsMobile } from "@/hooks/use-mobile"
+import { ScrollArea } from '@/components/ui/scroll-area'
 
 interface EditModalProps {
   isOpen: boolean
@@ -269,14 +270,16 @@ export function EditTeetimeModal({ isOpen, onClose, booking, teeTime, onEditComp
   if (isMobile) {
     return (
       <Drawer open={isOpen} onOpenChange={onClose}>
-        <DrawerContent>
+        <DrawerContent className='h-full max-h-[90vh]'>
+        <ScrollArea>
           <DrawerHeader>
-            <DrawerTitle className="hidden">Book time</DrawerTitle>
+            <DrawerTitle className="hidden">Book tee time</DrawerTitle>
               <HeaderContent />
           </DrawerHeader>
-          <div className="px-4">
-            <BookingContent />
+          <div className="px-4 py-0">
+              <BookingContent />
           </div>
+          </ScrollArea>
         </DrawerContent>
       </Drawer>
     )
@@ -284,12 +287,16 @@ export function EditTeetimeModal({ isOpen, onClose, booking, teeTime, onEditComp
 
   return (
     <Sheet open={isOpen} onOpenChange={onClose}>
-      <SheetContent className="bg-white dark:bg-gray-900 sm:min-w-[560px]">
-        <SheetHeader>
-          <SheetTitle className="mb-2 font-medium">Edit tee time</SheetTitle>
+      <SheetContent className="bg-white dark:bg-gray-900 sm:min-w-[560px] h-full max-h-[100vh] px-0 py-0">
+        <ScrollArea className="h-full">
+        <SheetHeader className="pt-8 px-8">
+          <SheetTitle className="mb-2 font-medium">Book tee time</SheetTitle>
             <HeaderContent />
         </SheetHeader>
-        <BookingContent />
+        <div className="px-8 py-0">
+          <BookingContent />
+        </div>
+        </ScrollArea>
       </SheetContent>
     </Sheet>
   )

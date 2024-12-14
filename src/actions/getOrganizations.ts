@@ -1,7 +1,6 @@
 'use server'
 
-import { createServerComponentClient } from '@supabase/auth-helpers-nextjs'
-import { cookies } from 'next/headers'
+import { createClient } from '@/lib/supabase/server'
 
 export interface Organization {
   id: string
@@ -13,7 +12,7 @@ export interface Organization {
 }
 
 export async function getOrganizations() {
-  const supabase = createServerComponentClient({ cookies })
+  const supabase = await createClient() 
 
   const { data, error } = await supabase
     .from('organizations')

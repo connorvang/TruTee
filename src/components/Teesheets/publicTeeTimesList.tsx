@@ -40,6 +40,8 @@ const getWeekNumber = (date: Date): number => {
 
 interface TeeTimesListProps {
   organizationId: string;
+  organizationName: string;
+  organizationImage: string;
   initialTeeTimes: TeeTime[];
 }
 
@@ -74,6 +76,11 @@ const formatTo12Hour = (time24: string) => {
 const isTimeValid = (startTime: string, teeTimeDate: Date) => {
   const today = new Date();
   const teeTime = new Date(teeTimeDate);
+
+    // If it's a past date, hide it
+    if (teeTime.toDateString() < today.toDateString()) {
+      return false;
+    }
   
   // If the tee time is not today, show it
   if (teeTime.toDateString() !== today.toDateString()) {
@@ -88,8 +95,11 @@ const isTimeValid = (startTime: string, teeTimeDate: Date) => {
   return teeTimeHours > currentHours;
 };
 
+
 export default function TeeTimesList({ 
   organizationId, 
+  organizationName, 
+  organizationImage, 
   initialTeeTimes,
 }: TeeTimesListProps) {
   const [date, setDate] = useState<Date>(new Date())
@@ -159,7 +169,7 @@ export default function TeeTimesList({
       const newDate = new Date(date);
       const day = newDate.getDay();
       const daysSinceLastSunday = day === 0 ? 7 : day; // Calculate days since last Sunday
-      newDate.setDate(newDate.getDate() - daysSinceLastSunday - 7); // Move to the previous week's Sunday
+      newDate.setDate(newDate.getDate() - daysSinceLastSunday); // Move to the previous week's Sunday
       setDate(newDate);
     }
   };
@@ -192,8 +202,10 @@ export default function TeeTimesList({
   };
 
   const handleBookingClick = (item: TeeTime) => {
+    // Just log the raw date string from the database
+    console.log('Selected Tee Time Date:', item.start_date);
+
     if (!isSignedIn) {
-      // This will trigger Clerk's modal
       const signIn = document.querySelector('[data-clerk-sign-in]');
       (signIn as HTMLElement)?.click();
       return;
@@ -375,6 +387,8 @@ export default function TeeTimesList({
               isOpen={isBookingModalOpen}
               onClose={() => setIsBookingModalOpen(false)}
               teeTime={selectedTeeTime}
+              organizationName={organizationName}
+              organizationImage={organizationImage}
               onBookingComplete={() => {
                 setDate(new Date(date!));
               }}

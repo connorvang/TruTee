@@ -1,7 +1,6 @@
 'use server'
 
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
-
+import { createClient } from '@/lib/supabase/server';
 interface Booking {
   id: string;
   number_of_holes: number;
@@ -32,7 +31,8 @@ interface Booking {
 }
 
 export async function getReservations(userId: string): Promise<Booking[]> {
-  const supabase = createClientComponentClient()
+  const supabase = await createClient() 
+  
   const { data, error } = await supabase
     .from('bookings')
     .select(`
@@ -45,6 +45,10 @@ export async function getReservations(userId: string): Promise<Booking[]> {
           start_date,
           end_time, 
           end_date,
+          green_fee_18,
+          green_fee_9,
+          cart_fee_18,
+          cart_fee_9,
           price, 
           simulator,
           available_spots,

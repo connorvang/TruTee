@@ -90,10 +90,14 @@ const Skeleton = () => (
 
 interface SimulatorTimesListProps {
   organizationId: string
+  organizationName: string
+  organizationImage: string
 }
 
 export default function SimulatorTimesList({ 
-  organizationId
+  organizationId,
+  organizationName,
+  organizationImage
 }: SimulatorTimesListProps) {
   const [date, setDate] = useState<Date | undefined>(new Date())
   const [teeTimes, setTeeTimes] = useState<{ [key: number]: TeeTime[] }>({})
@@ -203,7 +207,9 @@ export default function SimulatorTimesList({
   const handlePreviousWeek = () => {
     if (date) {
       const newDate = new Date(date);
-      newDate.setDate(date.getDate() - 7);
+      const day = newDate.getDay();
+      const daysSinceLastSunday = day === 0 ? 7 : day; // Calculate days since last Sunday
+      newDate.setDate(newDate.getDate() - daysSinceLastSunday); // Move to the previous week's Sunday
       setDate(newDate);
     }
   };
@@ -211,7 +217,9 @@ export default function SimulatorTimesList({
   const handleNextWeek = () => {
     if (date) {
       const newDate = new Date(date);
-      newDate.setDate(date.getDate() + 7);
+      const day = newDate.getDay();
+      const daysUntilNextMonday = (7 - day) % 7 || 7; // Calculate days until next Monday
+      newDate.setDate(newDate.getDate() + daysUntilNextMonday);
       setDate(newDate);
     }
   };
@@ -512,7 +520,9 @@ export default function SimulatorTimesList({
             <BookingModal
               isOpen={isBookingModalOpen}
               onClose={() => setIsBookingModalOpen(false)}
-              teeTime={selectedTeeTime}
+              teeTime={selectedTeeTime} 
+              organizationName={organizationName}
+              organizationImage={organizationImage}
               onBookingComplete={() => {
                 setDate(new Date(date!));
               }}

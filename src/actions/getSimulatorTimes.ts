@@ -1,7 +1,6 @@
 'use server'
 
-import { createServerComponentClient } from '@supabase/auth-helpers-nextjs'
-import { cookies } from 'next/headers'
+import { createClient } from '@/lib/supabase/server'
 
 interface TeeTime {
     id: string
@@ -32,7 +31,7 @@ export interface TeeTimes {
 }
 
 export async function getSimulatorTimes(date: Date, organizationId: string) {
-  const supabase = createServerComponentClient({ cookies })
+  const supabase = await createClient() 
   
   // Adjust for local timezone
   const localDate = new Date(date.getTime() + date.getTimezoneOffset() * 60000);

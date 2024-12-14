@@ -3,8 +3,8 @@
 import { useUser } from '@clerk/nextjs';
 import { useEffect, useState } from 'react';
 import { getReservations } from '@/actions/getReservations';
-import { format, differenceInMinutes } from 'date-fns';
-import { Users, CarFront, Footprints, Flag, Pencil } from 'lucide-react';
+import { format, differenceInMinutes, parse } from 'date-fns';
+import { Users, CarFront, Footprints, Flag } from 'lucide-react';
 import Image from 'next/image';
 import { DeleteBookingDialog } from '@/components/Booking/DeleteBookingDialog';
 import { Button } from '../ui/button';
@@ -23,18 +23,22 @@ interface Booking {
       id: string;
       start_time: string;
       start_date: string;
-      end_date: string;
       end_time: string;
+      end_date: string;
       price: number;
       simulator: number;
+      available_spots: number;
+      booked_spots: number;
+      green_fee_18: number;
+      green_fee_9: number;
+      cart_fee_18: number;
+      cart_fee_9: number;
       organizations: {
         id: string;
         name: string;
         golf_course: boolean;
         image_url: string;
       };
-      available_spots: number;
-      booked_spots: number;
       consecutive_slots?: {
         id: string;
         available_spots: number;
@@ -63,7 +67,7 @@ export default function UserBookingsClient() {
   useEffect(() => {
     if (user) {
       getReservations(user.id)
-        .then((data) => setBookings(data))
+        .then((data) => setBookings(data as Booking[]))
         .catch((err) => setError(err.message));
     }
   }, [user]);
@@ -82,7 +86,7 @@ export default function UserBookingsClient() {
     // Refresh the bookings list
     if (user) {
       getReservations(user.id)
-        .then((data) => setBookings(data))
+        .then((data) => setBookings(data as Booking[]))
         .catch((err) => setError(err.message));
     }
   };
@@ -122,9 +126,8 @@ export default function UserBookingsClient() {
                       return (
                         <div key={booking.id} className="flex w-full items-center border-b px-6 py-4 border-gray-100">
                           <div className="w-56 pr-4 text-sm font-medium">
-
                             {booking.tee_time_bookings?.[0]?.tee_times?.start_time ? 
-                              format(new Date(booking.tee_time_bookings[0].tee_times.start_date), 'MMM, d, yyyy') + ' ' + formatTo12Hour(booking.tee_time_bookings[0].tee_times.start_time)
+                              format(parse(booking.tee_time_bookings[0].tee_times.start_date, 'yyyy-MM-dd', new Date()), 'MMM d, yyyy') + ' @ ' + formatTo12Hour(booking.tee_time_bookings[0].tee_times.start_time)
                               : 'Time not available'
                             }
                           </div>
@@ -200,8 +203,8 @@ export default function UserBookingsClient() {
                       <div key={booking.id} className="flex w-full items-center border-b px-6 py-4 border-gray-100">
                         <div className="w-56 pr-4 text-sm font-medium">
                           {booking.tee_time_bookings?.[0]?.tee_times?.start_time ? 
-                              format(new Date(booking.tee_time_bookings[0].tee_times.start_date), 'MMM, d, yyyy') + ' ' + formatTo12Hour(booking.tee_time_bookings[0].tee_times.start_time)
-                            : 'Time not available'
+                              format(parse(booking.tee_time_bookings[0].tee_times.start_date, 'yyyy-MM-dd', new Date()), 'MMM d, yyyy') + ' @ ' + formatTo12Hour(booking.tee_time_bookings[0].tee_times.start_time)
+                              : 'Time not available'
                           }
                         </div>
                         
@@ -290,15 +293,10 @@ export default function UserBookingsClient() {
             setSelectedBooking(null);
           }}
           teeTime={{
-            id: selectedBooking.tee_time_bookings[0].teetime_id,
-            available_spots: selectedBooking.tee_time_bookings[0].tee_times.available_spots,
-            booked_spots: selectedBooking.tee_time_bookings[0].tee_times.booked_spots,
-            consecutive_slots: selectedBooking.tee_time_bookings[0].tee_times.consecutive_slots,
+            ...selectedBooking.tee_time_bookings[0].tee_times,
+            id: selectedBooking.tee_time_bookings[0].teetime_id
           }}
-          booking={{
-            id: selectedBooking.id,
-            guests: selectedBooking.guests,
-          }}
+          booking={selectedBooking}
           onDeleteComplete={handleDeleteComplete}
         />
       )}
@@ -309,18 +307,10 @@ export default function UserBookingsClient() {
             setIsEditDialogOpen(false);
             setSelectedBooking(null);
           }}
-          booking={{
-            id: selectedBooking.id,
-            number_of_holes: selectedBooking.number_of_holes,
-            has_cart: selectedBooking.has_cart,
-            guests: selectedBooking.guests,
-          }}
+          booking={selectedBooking}
           teeTime={{
-            id: selectedBooking.tee_time_bookings[0].teetime_id,
-            start_date: selectedBooking.tee_time_bookings[0].tee_times.start_date,
-            start_time: selectedBooking.tee_time_bookings[0].tee_times.start_time,
-            available_spots: selectedBooking.tee_time_bookings[0].tee_times.available_spots,
-            booked_spots: selectedBooking.tee_time_bookings[0].tee_times.booked_spots,
+            ...selectedBooking.tee_time_bookings[0].tee_times,
+            id: selectedBooking.tee_time_bookings[0].teetime_id
           }}
           onEditComplete={handleDeleteComplete}
         />

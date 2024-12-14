@@ -1,12 +1,16 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
-import { format } from 'date-fns'
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { format, parse } from 'date-fns'
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet"
+import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from "@/components/ui/drawer"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { useToast } from "@/hooks/use-toast"
 import { useUser } from "@clerk/nextjs"
+import { useIsMobile } from "@/hooks/use-mobile"
+import { Separator } from "@/components/ui/separator"
+import { Badge } from '../ui/badge'
 
 interface BookingModalProps {
   isOpen: boolean
@@ -28,22 +32,25 @@ interface BookingModalProps {
     }[]
   }
   onBookingComplete: () => void
+  organizationName: string
+  organizationImage: string
 }
 
-// Add this helper function to convert 24h to 12h format
 const formatTo12Hour = (time24: string) => {
   const [hours, minutes] = time24.split(':').map(Number);
   const period = hours >= 12 ? 'PM' : 'AM';
-  const hours12 = hours % 12 || 12; // Convert 0 to 12 for midnight
+  const hours12 = hours % 12 || 12;
   return `${hours12}:${minutes.toString().padStart(2, '0')} ${period}`;
 };
 
-export function BookingModal({ isOpen, onClose, teeTime, onBookingComplete }: BookingModalProps) {
+export function BookingModal({ isOpen, onClose, teeTime, onBookingComplete, organizationName, organizationImage }: BookingModalProps) {
   const { user } = useUser()
   const [isLoading, setIsLoading] = useState(false)
   const supabase = createClientComponentClient()
   const { toast } = useToast()
-  const [selectedDuration, setSelectedDuration] = useState("30");
+  const [selectedDuration, setSelectedDuration] = useState("30")
+  const isMobile = useIsMobile()
+  const [numberOfGuests, setNumberOfGuests] = useState(0)
 
   const maxAvailableSlots = teeTime.consecutive_slots?.length || 1;
 
@@ -86,6 +93,7 @@ export function BookingModal({ isOpen, onClose, teeTime, onBookingComplete }: Bo
         .from('bookings')
         .insert({
           user_id: user.id,
+          guests: numberOfGuests,
         })
         .select('id')
         .single();
@@ -144,44 +152,157 @@ export function BookingModal({ isOpen, onClose, teeTime, onBookingComplete }: Bo
     }
   }
 
-  return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="bg-white dark:bg-gray-900">
-        <DialogHeader>
-          <DialogTitle>Book Simulator</DialogTitle>
-          <DialogDescription>
-            {format(new Date(teeTime.start_date), 'MMM, d, yyyy')} {formatTo12Hour(teeTime.start_time)}
-          </DialogDescription>
-        </DialogHeader>
-
-        <div className="space-y-4 py-4">
-          <div className="space-y-2">
-            <Label>Duration</Label>
-            <Select
-              value={selectedDuration}
-              onValueChange={setSelectedDuration}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Select duration" />
-              </SelectTrigger>
-              <SelectContent>
-                {getDurationOptions().map((option) => (
-                  <SelectItem key={option.value} value={option.value}>
-                    {option.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+  const HeaderContent = () => (
+    <div className="relative p-4 rounded-lg shadow-md mb-4 bg-cover bg-center"
+      style={{ backgroundImage: `url(${organizationImage})` }}
+    >
+      <div className="absolute inset-0 from-black to-transparent bg-gradient-to-t rounded-lg"></div>
+      <div className="relative z-10 text-white text-left">
+        <div className="flex justify-between items-center">
+          <div className="text-xl font-extrabold">
+            {formatTo12Hour(teeTime.start_time)}
+          </div>
+          <div className="text-xl font-extrabold">
+            <Badge variant="outline" className="bg-black/75 text-white font-semibold border-white/50">Bay {teeTime.simulator}</Badge>
           </div>
         </div>
+        <div className="text-sm font-medium mt-4 opacity-75">
+          {format(parse(teeTime.start_date, 'yyyy-MM-dd', new Date()), 'EEEE, MMM d, yyyy')}
+        </div>
+        <div className="text-sm font-bold mt-1 opacity-90">
+          {organizationName}
+        </div>
+      </div>
+    </div>
+  )
 
-        <DialogFooter>
-          <Button variant="outline" onClick={onClose}>Cancel</Button>
-          <Button onClick={handleBooking} disabled={isLoading}>
-            {isLoading ? "Booking..." : "Confirm Booking"}
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+  const GUEST_FEE = 5.00; // Fixed fee per guest in dollars
+
+  const BookingContent = () => (
+    <>
+      <div className="space-y-4 pb-12 py-8 gap-4 flex flex-col">
+        <div className="flex-row flex justify-between items-center gap-4">
+          <div className="flex flex-col gap-2">
+            <Label className="flex">Duration</Label>
+            <span className="text-sm text-gray-600">How long would you like to play?</span>
+          </div>
+          <Select
+            value={selectedDuration}
+            onValueChange={setSelectedDuration}
+          >
+            <SelectTrigger className="w-[248px]">
+              <SelectValue placeholder="Select duration" />
+            </SelectTrigger>
+            <SelectContent>
+              {getDurationOptions().map((option) => (
+                <SelectItem key={option.value} value={option.value}>
+                  {option.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="flex-row flex justify-between items-center gap-4">
+          <div className="flex flex-col gap-2">
+            <Label className="flex">Guests</Label>
+            <span className="text-sm text-gray-600">Bringing others with you?</span>
+          </div>
+          <Select
+            value={numberOfGuests.toString()}
+            onValueChange={(value) => setNumberOfGuests(parseInt(value))}
+          >
+            <SelectTrigger className="w-[248px]">
+              <SelectValue placeholder="Select guests" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="0">No guests</SelectItem>
+              <SelectItem value="1">1 guest (${GUEST_FEE.toFixed(2)})</SelectItem>
+              <SelectItem value="2">2 guests (+${(GUEST_FEE * 2).toFixed(2)})</SelectItem>
+              <SelectItem value="3">3 guests (+${(GUEST_FEE * 3).toFixed(2)})</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+
+      <Separator />
+
+      <div className="space-y-4 py-12">
+        <h3 className="text-md font-medium">Pricing details</h3>
+        
+        <div className="space-y-2 text-sm">
+          <div className="flex justify-between">
+            <span className="text-gray-600">
+              Price (${teeTime.price.toFixed(2)} × {parseInt(selectedDuration) / 30}0 minutes)
+            </span>
+            <span>
+              ${(teeTime.price * (parseInt(selectedDuration) / 30)).toFixed(2)}
+            </span>
+          </div>
+
+          {numberOfGuests > 0 && (
+            <div className="flex justify-between pb-2">
+              <span className="text-gray-600">
+                Guest fee
+              </span>
+              <span>
+                ${(GUEST_FEE * numberOfGuests).toFixed(2)}
+              </span>
+            </div>
+          )}
+
+          <Separator />
+          
+          <div className="flex justify-between pt-2 font-medium">
+            <span>Subtotal (USD)</span>
+            <span>
+              ${(
+                (teeTime.price * (parseInt(selectedDuration) / 30)) + 
+                (GUEST_FEE * numberOfGuests)
+              ).toFixed(2)}
+            </span>
+          </div>
+
+          <div className="flex justify-between">
+            <span className="text-gray-500 text-xs">*Sales tax will be calculated at checkout if applicable.</span>
+          </div>
+        </div>
+      </div>
+
+      <div className="flex flex-col gap-2 pb-12">
+        <Button size="lg" onClick={handleBooking} disabled={isLoading}>
+          {isLoading ? "Booking..." : "Confirm booking"}
+        </Button>
+        <Button size="lg" variant="outline" onClick={onClose}>Cancel</Button>
+      </div>
+    </>
+  )
+
+  if (isMobile) {
+    return (
+      <Drawer open={isOpen} onOpenChange={onClose}>
+        <DrawerContent>
+          <DrawerHeader>
+            <DrawerTitle className="hidden">Book tee time</DrawerTitle>
+            <HeaderContent />
+          </DrawerHeader>
+          <div className="px-4">
+            <BookingContent />
+          </div>
+        </DrawerContent>
+      </Drawer>
+    )
+  }
+
+  return (
+    <Sheet open={isOpen} onOpenChange={onClose}>
+      <SheetContent className="bg-white dark:bg-gray-900 sm:min-w-[560px]">
+        <SheetHeader>
+          <SheetTitle className="mb-2 font-medium">Book Simulator</SheetTitle>
+          <HeaderContent />
+        </SheetHeader>
+        <BookingContent />
+      </SheetContent>
+    </Sheet>
   )
 } 

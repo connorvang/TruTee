@@ -1,7 +1,6 @@
 'use server'
 
-import { createServerComponentClient } from '@supabase/auth-helpers-nextjs'
-import { cookies } from 'next/headers'
+import { createClient } from '@/lib/supabase/server'
 
 export interface TeeTime {
   id: string
@@ -33,10 +32,9 @@ export interface TeeTime {
     }
   }[]
 }
-
 export async function getTeeTimes(date: Date, organizationId: string) {
-  const supabase = createServerComponentClient({ cookies })
-  
+  const supabase = await createClient() 
+
   const localDate = new Date(date.getTime() + date.getTimezoneOffset() * 60000);
   const dateString = localDate.toISOString().split('T')[0]  // "2024-12-19"
 

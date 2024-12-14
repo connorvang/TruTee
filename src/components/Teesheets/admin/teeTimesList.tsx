@@ -189,7 +189,7 @@ export default function TeeTimesList() {
       const newDate = new Date(date);
       const day = newDate.getDay();
       const daysSinceLastSunday = day === 0 ? 7 : day; // Calculate days since last Sunday
-      newDate.setDate(newDate.getDate() - daysSinceLastSunday - 7); // Move to the previous week's Sunday
+      newDate.setDate(newDate.getDate() - daysSinceLastSunday); // Move to the previous week's Sunday
       setDate(newDate);
     }
   };

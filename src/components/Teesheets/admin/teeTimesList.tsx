@@ -1,21 +1,13 @@
 "use client"
 
-import { ChevronLeft, ChevronRight, PlusCircle, Users, ChevronDown, CarFront, Circle, LandPlot, Footprints } from 'lucide-react'
+import { PlusCircle, CarFront, LandPlot, Footprints } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { format } from "date-fns"
 import { BookingModal } from '@/components/Booking/admin/adminTeetimeBookingModal'
 import { DeleteBookingDialog } from '@/components/Booking/DeleteBookingDialog'
-
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Button } from "@/components/ui/button"
-import { Separator } from "@/components/ui/separator"
-import { Breadcrumb, BreadcrumbItem, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from "@/components/ui/breadcrumb"
-import { Calendar } from "@/components/ui/calendar"
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
-import { cn } from "@/lib/utils"
 import { getTeeTimes, TeeTime } from '@/actions/getTeeTimes'
 import { useOrganization } from '@clerk/nextjs'
-import WeatherInfo from '../../getWeather'
+import DateNavigation from '@/components/dateNavigation'
 
 // Helper function to get week number
 const getWeekNumber = (date: Date): number => {
@@ -77,7 +69,7 @@ const formatTo12Hour = (time24: string) => {
 };
 
 export default function TeeTimesList() {
-  const [date, setDate] = useState<Date | undefined>(new Date());
+  const [date, setDate] = useState<Date>(new Date())
   const [selectedDay, setSelectedDay] = useState<string>("");
   const [selectedTeeTime, setSelectedTeeTime] = useState<TeeTime | null>(null)
   const [isBookingModalOpen, setIsBookingModalOpen] = useState(false)
@@ -162,64 +154,7 @@ export default function TeeTimesList() {
     return () => clearInterval(interval);
   }, [date, teeTimes, intervalMinutes]);
 
-  const getWeekDates = (currentDate: Date) => {
-    // Clone the date to avoid modifying the original
-    const date = new Date(currentDate);
-    
-    // Get Sunday of the current week
-    const day = date.getDay();
-    const diff = -day; // Adjust to get Sunday (no need for special case now)
-    const startOfWeek = new Date(date);
-    startOfWeek.setDate(date.getDate() + diff);
-    
-    return Array.from({ length: 7 }, (_, i) => {
-      const day = new Date(startOfWeek);
-      day.setDate(startOfWeek.getDate() + i);
-      return {
-        dayShort: day.toLocaleDateString('en-US', { weekday: 'short' }),
-        date: day.getDate()
-      };
-    });
-  };
 
-  const weekdays = getWeekDates(date || new Date());
-
-  const handlePreviousWeek = () => {
-    if (date) {
-      const newDate = new Date(date);
-      const day = newDate.getDay();
-      const daysSinceLastSunday = day === 0 ? 7 : day; // Calculate days since last Sunday
-      newDate.setDate(newDate.getDate() - daysSinceLastSunday); // Move to the previous week's Sunday
-      setDate(newDate);
-    }
-  };
-
-  const handleNextWeek = () => {
-    if (date) {
-      const newDate = new Date(date);
-      const day = newDate.getDay();
-      const daysUntilNextMonday = (7 - day) % 7 || 7; // Calculate days until next Monday
-      newDate.setDate(newDate.getDate() + daysUntilNextMonday);
-      setDate(newDate);
-    }
-  };
-
-  const getDateFromDay = (dayShort: string) => {
-    const targetDate = date || new Date();
-    const day = targetDate.getDay();
-    const diff = -day; // Adjust to get Sunday
-    const startOfWeek = new Date(targetDate);
-    startOfWeek.setDate(targetDate.getDate() + diff);
-    
-    const daysMap: { [key: string]: number } = {
-      "Sun": 0, "Mon": 1, "Tue": 2, "Wed": 3, 
-      "Thu": 4, "Fri": 5, "Sat": 6
-    };
-    
-    const newDate = new Date(startOfWeek);
-    newDate.setDate(startOfWeek.getDate() + daysMap[dayShort]);
-    return newDate;
-  };
 
   const handleBookingClick = (item: TeeTime) => {
     setSelectedTeeTime(item);
@@ -234,104 +169,15 @@ export default function TeeTimesList() {
 
   return (
     <div className="p-0">
-      <div className="flex items-center justify-between px-6 py-2 bg-background border-b border-gray-100">
-        <div className="flex items-center gap-4">
-          <Button variant="outline" 
-            className="h-8" 
-            onClick={() => setDate(new Date())}
-          >
-            Today
-          </Button>
-
-          <Separator orientation="vertical" className="h-4" />
-
-          <Breadcrumb>
-            <BreadcrumbList>
-              <BreadcrumbItem>
-                <BreadcrumbPage>{format(date!, "MMMM yyyy")}</BreadcrumbPage>
-              </BreadcrumbItem>
-              <BreadcrumbSeparator />
-              <BreadcrumbItem>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant={"ghost"}
-                      className={cn(
-                        "p-0 h-8 text-left font-normal hover:bg-transparent",
-                        !date && "text-muted-foreground"
-                      )}
-                    >
-                      {date ? `Week ${getWeekNumber(date)}` : <span>Pick a date</span>}
-                      <ChevronDown size={16} />
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0" align="start">
-                    <Calendar
-                      mode="single"
-                      selected={date}
-                      onSelect={setDate}
-                      initialFocus
-                      required
-                    />
-                  </PopoverContent>
-                </Popover>
-              </BreadcrumbItem>
-            </BreadcrumbList>
-          </Breadcrumb>
-        </div>
-
-        <div className="flex items-center gap-8">
-          <div className="flex items-center gap-4">
-            <div className="flex items-center gap-1 text-sm font-medium">
-              <Circle className="flex text-gray-900" size={16} />
-              {teeTimes.reduce((total, item) => {
-                const bookedSpots = item.tee_time_bookings.reduce((sum, booking) => 
-                  sum + (booking.bookings ? 1 + booking.bookings.guests : 0), 0);
-                return total + (4 - bookedSpots);
-              }, 0)}
-            </div>
-            <div className="flex items-center gap-1 text-sm font-medium">
-              <Users className="text-gray-900" size={16} />
-              {teeTimes.reduce((total, item) => 
-                total + item.tee_time_bookings.reduce((sum, booking) => 
-                  sum + (booking.bookings ? 1 + booking.bookings.guests : 0), 0), 0)}
-            </div>
-          </div>
-
-          <WeatherInfo />
-
-          <Separator orientation="vertical" className="h-4" />
-          
-          <div className="flex items-center gap-4">
-            <div className="flex items-center gap-2">
-              <Button variant="ghost" className="w-8 h-8" onClick={handlePreviousWeek}>
-                <ChevronLeft className="text-gray-500" size={16} />
-              </Button>
-              <Button variant="ghost" className="w-8 h-8" onClick={handleNextWeek}>
-                <ChevronRight className="text-gray-500" size={16} />
-              </Button>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <Tabs value={selectedDay} className="w-full">
-        <TabsList className="flex mx-6 my-2">
-          {weekdays.map((day) => (
-            <TabsTrigger 
-              key={day.dayShort} 
-              value={day.dayShort} 
-              className="whitespace-nowrap flex-1"
-              onClick={() => {
-                setSelectedDay(day.dayShort);
-                const newDate = getDateFromDay(day.dayShort);
-                if (newDate) setDate(newDate);
-              }}
-            >
-              {day.dayShort} {day.date}
-            </TabsTrigger>
-          ))}
-        </TabsList>
+      
+      <DateNavigation
+        variant="default"
+        date={date}
+        setDate={setDate}
+        selectedDay={selectedDay}
+        setSelectedDay={setSelectedDay}
+        showWeather={false}
+      />
 
         <div className="relative">
           {loading ? (
@@ -458,7 +304,6 @@ export default function TeeTimesList() {
             />
           )}
         </div>
-      </Tabs>
     </div>
   )
 }

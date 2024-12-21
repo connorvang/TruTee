@@ -38,6 +38,7 @@
     "react": "^18",
     "react-day-picker": "^8.10.1",
     "react-dom": "^18",
+    "seam": "^1.42.0",
     "svix": "^1.41.0",
     "tailwind-merge": "^2.5.5",
     "tailwindcss-animate": "^1.0.7",

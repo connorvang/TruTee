@@ -7,7 +7,7 @@ import {
   LandPlot,
   MessagesSquare,
   SettingsIcon,
-  TagIcon,
+  ShieldCheck,
   UsersIcon,
 } from "lucide-react"
 
@@ -40,9 +40,9 @@ export const sidebarConfig = {
       icon: CircleDollarSign,
     },
     {
-      title: "Promotions",
-      url: "#",
-      icon: TagIcon,
+      title: "Security",
+      url: "/admin/security",
+      icon: ShieldCheck,
     },
     {
       title: "Messages",

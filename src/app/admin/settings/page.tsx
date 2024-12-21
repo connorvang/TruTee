@@ -10,21 +10,13 @@ import {
 } from "@/components/ui/breadcrumb"
 import { Separator } from "@/components/ui/separator"
 import {
-  SidebarInset,
+  SidebarInset,   
   SidebarProvider,
   SidebarTrigger,
 } from "@/components/ui/sidebar"
+import DoorLockSettings from "@/components/Security/DoorLocksList"
 
-
-interface TeeTimeSettings {
-  id: string;
-  course_id: string;
-  interval_minutes: number;
-  first_tee_time: string;
-  last_tee_time: string;
-  days_in_advance: number;
-}
-
+  
 export default function SettingsPage() {
   return (
     <SidebarProvider>

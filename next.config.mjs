@@ -1,6 +1,7 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
     images: {
+      domains: ['connect.getseam.com'],
       remotePatterns: [
         {
           protocol: 'https',

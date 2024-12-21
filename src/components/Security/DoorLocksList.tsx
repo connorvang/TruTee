@@ -4,9 +4,11 @@ import { useEffect, useState, useRef } from 'react'
 import { Button } from '@/components/ui/button'
 import Image from 'next/image'
 import { Battery, BatteryLow, BatteryMedium, BatteryFull, Lock, LockOpen } from 'lucide-react'
+import { useOrganization } from '@clerk/nextjs'
 
 interface Device {
   device_id: string
+  device_type: string
   display_name: string
   properties: {
     name: string
@@ -25,6 +27,7 @@ interface Device {
 }
 
 export default function DoorLocksList() {
+  const { organization } = useOrganization()
   const [locks, setLocks] = useState<Device[]>([])
   const [loading, setLoading] = useState(true)
   const [actionLoading, setActionLoading] = useState<string | null>(null)
@@ -40,7 +43,7 @@ export default function DoorLocksList() {
     }, 5000)
 
     return () => clearInterval(interval)
-  }, [])
+  }, [organization?.id])
 
   const fetchLocks = async () => {
     try {
@@ -90,7 +93,7 @@ export default function DoorLocksList() {
   const handleAddDevice = async () => {
     try {
       setIsConnecting(true)
-      const response = await fetch('/api/webhooks/seam', {
+      const response = await fetch('/api/webhooks/seam/connect', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -174,7 +177,7 @@ export default function DoorLocksList() {
   }
 
   return (
-    <div className="flex flex-col gap-12 max-w-[1080px] mx-auto mt-12">
+    <div className="flex flex-col gap-12 max-w-[1080px] mx-auto">
       {/* Header */}
       <div>
         <h1 className="text-2xl font-semibold mb-1">Security</h1>
@@ -227,7 +230,7 @@ export default function DoorLocksList() {
                       height={32}
                       className="rounded"
                     />
-                    <span className="text-sm font-medium">{toSentenceCase(lock.display_name)}</span>
+                      <span className="text-sm font-medium">{toSentenceCase(lock.display_name)}</span>                   
                   </div>
 
                   {/* Status */}

@@ -18,6 +18,7 @@ export async function GET() {
     }
 
     const seam = new Seam()
+    
 
     // Log filtered accounts
     const filteredAccounts = await seam.connectedAccounts.list({
@@ -25,7 +26,6 @@ export async function GET() {
         organization_id: orgId
       }
     })
-    console.log('Filtered Connected Accounts:', filteredAccounts)
 
 
     // Then get filtered devices

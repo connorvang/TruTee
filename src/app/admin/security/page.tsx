@@ -27,7 +27,7 @@ export default function SecurityPage() {
               </Breadcrumb>
             </div>
           </header>
-          <div className="pt-8">
+          <div className="pt-8 px-6">
               <DoorLocksList />
           </div>
         </SidebarInset>

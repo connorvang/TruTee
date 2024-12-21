@@ -3,28 +3,11 @@
 import { useEffect, useState, useRef } from 'react'
 import { Button } from '@/components/ui/button'
 import Image from 'next/image'
-import { Battery, BatteryLow, BatteryMedium, BatteryFull, Lock, LockOpen } from 'lucide-react'
+import { Battery, BatteryLow, BatteryMedium, BatteryFull, Lock, LockOpen, ChevronRight } from 'lucide-react'
 import { useOrganization } from '@clerk/nextjs'
+import { useRouter } from 'next/navigation'
+import { Device } from '@/types/seam'
 
-interface Device {
-  device_id: string
-  device_type: string
-  display_name: string
-  properties: {
-    name: string
-    locked: boolean
-    online: boolean
-    door_open: boolean
-    manufacturer: string
-    model: {
-      display_name: string
-    }
-    image_url: string
-    battery_level: number
-  }
-  can_remotely_lock: boolean
-  can_remotely_unlock: boolean
-}
 
 export default function DoorLocksList() {
   const { organization } = useOrganization()
@@ -34,6 +17,7 @@ export default function DoorLocksList() {
   const [isConnecting, setIsConnecting] = useState(false)
   const connectWindowRef = useRef<Window | null>(null)
   const pollIntervalRef = useRef<NodeJS.Timeout>()
+  const router = useRouter()
 
   useEffect(() => {
     fetchLocks()
@@ -176,8 +160,12 @@ export default function DoorLocksList() {
     return str.toLowerCase().replace(/^\w/, c => c.toUpperCase());
   }
 
+  const handleDeviceClick = (deviceId: string) => {
+    router.push(`/admin/security/${deviceId}`)
+  }
+
   return (
-    <div className="flex flex-col gap-12 max-w-[1080px] mx-auto">
+    <div className="flex flex-col gap-12 max-w-[1440px] mx-auto">
       {/* Header */}
       <div>
         <h1 className="text-2xl font-semibold mb-1">Security</h1>
@@ -220,7 +208,11 @@ export default function DoorLocksList() {
               </div>
             ) : (
               locks.map((lock) => (
-                <div key={lock.device_id} className="grid grid-cols-5 px-6 py-4 border-b border-gray-100 items-center">
+                <div 
+                  key={lock.device_id} 
+                  className="grid grid-cols-5 px-6 py-4 border-b border-gray-100 items-center hover:bg-gray-50 cursor-pointer"
+                  onClick={() => handleDeviceClick(lock.device_id)}
+                >
                   {/* Device */}
                   <div className="flex items-center gap-3">
                     <Image 
@@ -230,7 +222,10 @@ export default function DoorLocksList() {
                       height={32}
                       className="rounded"
                     />
-                      <span className="text-sm font-medium">{toSentenceCase(lock.display_name)}</span>                   
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-medium">{toSentenceCase(lock.display_name)}</span>
+                      <ChevronRight className="w-4 h-4 text-gray-400" />
+                    </div>
                   </div>
 
                   {/* Status */}
@@ -241,16 +236,16 @@ export default function DoorLocksList() {
 
                   {/* Battery */}
                   <div className="flex items-center gap-2">
-                    {lock.properties.battery_level * 100 >= 75 ? (
+                    {(lock.properties.battery_level || 0) * 100 >= 75 ? (
                       <BatteryFull className="w-5 h-5 text-green-500" />
-                    ) : lock.properties.battery_level * 100 >= 50 ? (
+                    ) : (lock.properties.battery_level || 0) * 100 >= 50 ? (
                       <Battery className="w-5 h-5 text-green-500" />
-                    ) : lock.properties.battery_level * 100 >= 25 ? (
+                    ) : (lock.properties.battery_level || 0) * 100 >= 25 ? (
                       <BatteryMedium className="w-5 h-5 text-orange-500" />
                     ) : (
                       <BatteryLow className="w-5 h-5 text-red-500" />
                     )}
-                    <span className="text-sm text-gray-600">{Math.round(lock.properties.battery_level * 100)}%</span>
+                    <span className="text-sm text-gray-600">{Math.round((lock.properties.battery_level || 0) * 100)}%</span>
                   </div>
 
                   {/* State */}
@@ -270,7 +265,10 @@ export default function DoorLocksList() {
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => handleLockAction(lock.device_id, lock.properties.locked ? 'unlock' : 'lock')}
+                      onClick={(e) => {
+                        e.stopPropagation() // Prevent navigation when clicking the button
+                        handleLockAction(lock.device_id, lock.properties.locked ? 'unlock' : 'lock')
+                      }}
                       disabled={actionLoading === lock.device_id || !lock.properties.online}
                       className="min-w-[80px]"
                     >

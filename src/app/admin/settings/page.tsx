@@ -14,9 +14,7 @@ import {
   SidebarProvider,
   SidebarTrigger,
 } from "@/components/ui/sidebar"
-import DoorLockSettings from "@/components/Security/DoorLocksList"
 
-  
 export default function SettingsPage() {
   return (
     <SidebarProvider>

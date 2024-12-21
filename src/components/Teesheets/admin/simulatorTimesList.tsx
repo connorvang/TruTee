@@ -210,9 +210,8 @@ export default function SimulatorTimesList() {
    
         <div className="relative w-full bg-white rounded-md shadow-sm timeSlots">
           <div className="sticky top-0 z-10 flex w-full h-10 bg-white border-b border-gray-100">
-            <div className="w-26 pr-4 text-sm font-small text-right"></div>
             {simulatorCount > 0 && (
-          <div className="flex w-full pl-6 h-10 baysHeader">
+          <div className="flex w-full pl-6 pr-4 h-10 border-t border-gray-100 baysHeader">
             <div className="w-20 pr-4 text-sm font-small text-right"></div>
             {Object.keys(teeTimes).map((simulator, index) => (
               <div
@@ -250,7 +249,7 @@ export default function SimulatorTimesList() {
                   <div className="flex-1 ml-8 h-[1px] bg-red-500"></div>
                 </div>
               )}
-              <div className="flex flex-row">
+              <div className="flex flex-row pr-4">
                 <div className="flex flex-col w-26">
                   {Array.from({ length: 48 }, (_, index) => {
                     const hour = Math.floor(index / 2);

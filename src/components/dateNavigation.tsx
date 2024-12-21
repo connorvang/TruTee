@@ -106,7 +106,7 @@ export default function DateNavigation({
     <>
       <div className={cn(
         "flex items-center justify-between bg-background border-b border-gray-100",
-        variant === 'default' ? 'p-2  pl-4 pr-6' : 'pb-2 px-0 pr-0'
+        variant === 'default' ? 'p-2 px-6' : 'pb-2 px-0 pr-0'
       )}>
         <div className="flex items-center gap-4">
           <Button 
@@ -175,7 +175,7 @@ export default function DateNavigation({
         </div>
       </div>
 
-      <Tabs value={selectedDay} className={cn("w-full", variant === 'default' ? 'pl-4 pr-6' : 'px-0')}>
+      <Tabs value={selectedDay} className={cn("w-full", variant === 'default' ? 'px-6' : 'px-0')}>
         <TabsList className="flex my-2">
           {weekdays.map((day) => (
             <TabsTrigger 

@@ -4,10 +4,7 @@ import { auth } from "@clerk/nextjs/server"
 
 
 
-export async function GET(
-  request: NextRequest,
-  { params }: { params: { deviceId: string } }
-) {
+export async function GET(_request: NextRequest, { params }: { params: { deviceId: string } }) {
   try {
     const { userId } = await auth()
     if (!userId) {
@@ -39,12 +36,10 @@ export async function GET(
   }
 }
 
-export async function DELETE(
-  request: Request,
-  { params }: { params: { deviceId: string } }
-) {
+export async function DELETE(_request: Request, props: { params: Promise<{ deviceId: string }> }) {
+  const params = await props.params;
   try {
-    const { userId, orgId } = await auth()
+    const { userId } = await auth()
     if (!userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }

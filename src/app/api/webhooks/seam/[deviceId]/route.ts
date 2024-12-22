@@ -1,18 +1,20 @@
 import { Seam } from "seam"
-import { NextResponse } from 'next/server'
+import { NextResponse, NextRequest } from 'next/server'
 import { auth } from "@clerk/nextjs/server"
 
+
+
 export async function GET(
-  request: Request,
+  request: NextRequest,
   { params }: { params: { deviceId: string } }
 ) {
   try {
-    const { userId, orgId } = await auth()
+    const { userId } = await auth()
     if (!userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const deviceId = params.deviceId
+    const deviceId = await params.deviceId
     const seam = new Seam()
     
     // Use Promise.all to fetch data in parallel

@@ -2,10 +2,18 @@
 
 import { useState, useEffect } from 'react'
 import { Button } from "@/components/ui/button"
-import { Copy } from "lucide-react"
+import { Copy, MoreHorizontal } from "lucide-react"
 import { AccessCode } from '@/types/seam'
+import { useToast } from "@/hooks/use-toast"
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip"
 
 export default function AccessCodesList({ lockId }: { lockId: string }) {
+  const { toast } = useToast()
   const [codes, setCodes] = useState<AccessCode[]>([])
   const [loading, setLoading] = useState(true)
 
@@ -28,6 +36,10 @@ export default function AccessCodesList({ lockId }: { lockId: string }) {
 
   const copyCode = (code: string) => {
     navigator.clipboard.writeText(code)
+    toast({
+      description: "Code copied to clipboard",
+      duration: 2000,
+    })
   }
 
   const formatDate = (dateString: string) => {
@@ -61,7 +73,7 @@ export default function AccessCodesList({ lockId }: { lockId: string }) {
   )
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 w-full">
       <div className="flex items-center justify-between mb-4">
         <h2 className="text-xl font-semibold">Access codes</h2>
         <Button 
@@ -92,19 +104,28 @@ export default function AccessCodesList({ lockId }: { lockId: string }) {
                   <div className="text-base font-medium">{code.name}</div>
                   <div className="text-sm text-gray-500">
                     {code.type === 'ongoing' ? 'Ongoing' : 
-                      `${code.starts_at ? formatDate(code.starts_at) : ''}  →  ${code.ends_at ? formatDate(code.ends_at) : ''}`}
+                      `${code.starts_at ? formatDate(code.starts_at) : ''} → ${code.ends_at ? formatDate(code.ends_at) : ''}`}
                   </div>
                 </div>
                 <div className="flex items-center px-3 justify-end gap-3 w-40">
-                    <Button 
-                      variant="secondary" 
-                      size="sm"
-                      className="text-sm font-medium"
-                      onClick={() => copyCode(code.code)}
-                    >
-                      <span className="text-base font-medium">{code.code}</span>
-                      <Copy className="w-4 h-4" />
-                    </Button>
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button 
+                            variant="secondary" 
+                            size="sm"
+                            onClick={() => copyCode(code.code)}
+                            className="text-sm font-medium border border-gray-200"
+                          >
+                            <span className="text-base font-medium">{code.code}</span>
+                            <Copy className="w-4 h-4" />
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>Copy access code</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
                 </div>
                   <div className="flex px-3 items-center gap-2 w-32">
                     <div className={`h-2 w-2 rounded-full ${

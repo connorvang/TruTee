@@ -1,6 +1,6 @@
 'use client'
 
-import { ArrowLeftIcon } from "lucide-react";
+import { ArrowLeftIcon, LockOpen } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import AccessCodesList from "@/components/Security/AccessCodesList";
@@ -15,6 +15,7 @@ interface LockDetailProps {
   device: Device;
 }
 
+
   const toSentenceCase = (str: string) => {
     return str.toLowerCase().replace(/^\w/, c => c.toUpperCase());
   }
@@ -26,7 +27,7 @@ export default function DoorLockDetail({ device }: LockDetailProps) {
   return (
     <div className="container mx-auto max-w-[1440px]">
       {/* Header */}
-      <div className="flex w-full items-center mb-6">
+      <div className="flex w-full items-center mb-8">
         <div className="flex w-full items-start gap-8 flex-col">
           <button onClick={() => router.back()}>
             <span className="flex items-center gap-2">
@@ -51,7 +52,7 @@ export default function DoorLockDetail({ device }: LockDetailProps) {
       </div>
 
       {/* Tabs */}
-      <Tabs defaultValue="codes" onValueChange={(value) => setActiveTab(value as 'codes' | 'events')} className="border-b mb-6">
+      <Tabs defaultValue="codes" onValueChange={(value) => setActiveTab(value as 'codes' | 'events')} className="border-b mb-12">
         <TabsList className="bg-transparent border-0">
           <TabsTrigger 
             value="codes" 
@@ -69,8 +70,8 @@ export default function DoorLockDetail({ device }: LockDetailProps) {
       </Tabs>
 
       {/* Content */}
-      <div className="grid grid-cols-3 gap-8">
-        <div className="col-span-2">
+      <div className="flex flex-row gap-12">
+        <div className="flex flex-1 ">
           {activeTab === 'codes' ? (
             <AccessCodesList lockId={device.device_id} />
           ) : (

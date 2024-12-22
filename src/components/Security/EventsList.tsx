@@ -24,28 +24,61 @@ export default function EventsList({ lockId }: { lockId: string }) {
     fetchEvents()
   }, [lockId])
 
-  if (loading) {
-    return <div>Loading...</div>
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString)
+    return date.toLocaleString('en-US', {
+      month: '2-digit',
+      day: '2-digit',
+      year: '2-digit',
+      hour: 'numeric',
+      minute: '2-digit',
+      hour12: true
+    }).toLowerCase()
   }
 
-  return (
-    <div className="space-y-4">
-      <h2 className="text-lg font-semibold">Events</h2>
-      <div className="bg-gray-50 rounded-lg p-4">
-        {events.length === 0 ? (
-          <div className="text-gray-500 text-sm">No events found</div>
-        ) : (
-          <div className="space-y-2">
-            {events.map((event) => (
-              <div key={event.event_id} className="flex justify-between p-3 bg-white rounded-md">
-                <span>{event.event_type}</span>
-                <span className="text-gray-500">
-                  {new Date(event.occurred_at).toLocaleString()}
-                </span>
-              </div>
-            ))}
+  const Skeleton = () => (
+    <div className="flex flex-col">
+      {Array.from({ length: 3 }).map((_, idx) => (
+        <div key={idx} className="flex items-center border-b px-6 py-5 border-gray-100">
+          <div className="flex-1">
+            <div className="h-5 w-32 bg-gray-200 rounded animate-pulse mb-2" />
+            <div className="h-4 w-24 bg-gray-200 rounded animate-pulse" />
           </div>
-        )}
+        </div>
+      ))}
+    </div>
+  )
+
+  return (
+    <div className="space-y-4 w-full">
+      <div className="flex items-center justify-between mb-4">
+        <h2 className="text-xl font-semibold">Events</h2>
+      </div>
+      
+      <div className="bg-gray-50 p-1 rounded-2xl overflow-hidden">
+        <div className="bg-white border border-black/6 rounded-xl shadow-sm overflow-hidden">
+          {loading ? (
+            <Skeleton />
+          ) : events.length === 0 ? (
+            <div className="p-6 text-sm text-gray-500">
+              No events found.
+            </div>
+          ) : (
+            events.map((event) => (
+              <div 
+                key={event.event_id} 
+                className="flex items-center justify-between px-6 py-4 border-b border-gray-100"
+              >
+                <div className="space-y-1">
+                  <div className="text-base font-medium">{event.event_type}</div>
+                  <div className="text-sm text-gray-500">
+                    {formatDate(event.occurred_at)}
+                  </div>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
       </div>
     </div>
   )

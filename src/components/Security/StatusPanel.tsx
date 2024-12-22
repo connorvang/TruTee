@@ -1,4 +1,5 @@
-import { Battery, Lock, LockOpen } from "lucide-react"
+import { Battery, BatteryLow, BatteryMedium, BatteryFull, Lock, LockOpen } from "lucide-react"
+import { Separator } from "@/components/ui/separator"
 
 interface StatusPanelProps {
   status: string
@@ -16,7 +17,7 @@ export default function StatusPanel({
   pairedDate
 }: StatusPanelProps) {
   return (
-    <div className="p-6 space-y-6">
+    <div className="space-y-6 max-w-[320px]">
       <div className="space-y-2">
         <h3 className="text-sm text-gray-600">Status</h3>
         <div className="flex items-center gap-2">
@@ -28,8 +29,16 @@ export default function StatusPanel({
       <div className="space-y-2">
         <h3 className="text-sm text-gray-600">Battery</h3>
         <div className="flex items-center gap-2">
-          <Battery className="w-4 h-4" />
-          <span>{battery}%</span>
+          {battery >= 75 ? (
+            <BatteryFull className="w-5 h-5 text-green-500" />
+          ) : battery >= 50 ? (
+            <Battery className="w-5 h-5 text-green-500" />
+          ) : battery >= 25 ? (
+            <BatteryMedium className="w-5 h-5 text-orange-500" />
+          ) : (
+            <BatteryLow className="w-5 h-5 text-red-500" />
+          )}
+          <span className="text-sm text-gray-600">{battery}%</span>
         </div>
       </div>
 
@@ -37,18 +46,22 @@ export default function StatusPanel({
         <h3 className="text-sm text-gray-600">Lock status</h3>
         <div className="flex items-center gap-2">
           {lockStatus === 'Locked' ? (
-            <Lock className="w-4 h-4" />
+            <Lock className="w-4 h-4 text-gray-600" />
           ) : (
-            <LockOpen className="w-4 h-4" />
+            <LockOpen className="w-4 h-4 text-gray-600" />
           )}
           <span>{lockStatus}</span>
         </div>
       </div>
 
+      <Separator />
+
       <div className="space-y-2">
         <h3 className="text-sm text-gray-600">Device ID</h3>
         <div className="text-sm break-all">{deviceId}</div>
       </div>
+
+      <Separator />
 
       <div className="space-y-2">
         <h3 className="text-sm text-gray-600">Paired</h3>

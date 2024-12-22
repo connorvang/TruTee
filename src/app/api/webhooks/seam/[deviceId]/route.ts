@@ -4,7 +4,8 @@ import { auth } from "@clerk/nextjs/server"
 
 
 
-export async function GET(_request: NextRequest, { params }: { params: { deviceId: string } }) {
+export async function GET(_request: NextRequest, props: { params: Promise<{ deviceId: string }> }) {
+  const params = await props.params;
   try {
     const { userId } = await auth()
     if (!userId) {

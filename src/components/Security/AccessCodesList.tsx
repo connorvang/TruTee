@@ -1,8 +1,8 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { Button } from "@/components/ui/button"
-import { Copy, MoreHorizontal } from "lucide-react"
+import { Copy, Trash2 } from "lucide-react"
 import { AccessCode } from '@/types/seam'
 import { useToast } from "@/hooks/use-toast"
 import {
@@ -11,28 +11,83 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip"
+import { CreateAccessCodeDialog } from './CreateAccessCodeDialog'
 
 export default function AccessCodesList({ lockId }: { lockId: string }) {
   const { toast } = useToast()
   const [codes, setCodes] = useState<AccessCode[]>([])
   const [loading, setLoading] = useState(true)
 
+  const fetchCodes = useCallback(async (background = false) => {
+    try {
+      if (!background) {
+        setLoading(true)
+      }
+      console.log('🔍 Fetching codes for lockId:', lockId)
+      const response = await fetch(`/api/seam/${lockId}`)
+      const data = await response.json()
+      console.log('📥 Received codes:', data.accessCodes)
+      setCodes(data.accessCodes || [])
+    } catch (error) {
+      console.error('Error fetching access codes:', error)
+      setCodes([])
+    } finally {
+      setLoading(false)
+    }
+  }, [lockId])
+
   useEffect(() => {
-    async function fetchCodes() {
+    fetchCodes()
+  }, [fetchCodes])
+
+  useEffect(() => {
+    let events = new EventSource('/api/events')
+    console.log('🔌 Setting up SSE connection')
+    
+    events.onmessage = (event) => {
       try {
-        const response = await fetch(`/api/webhooks/seam/${lockId}`)
-        const data = await response.json()
-        setCodes(data.accessCodes || [])
+        const data = JSON.parse(event.data)
+        console.log('🔄 Received SSE update:', data)
+        
+        if (
+          (data.type === 'access_code.created' ||
+           data.type === 'access_code.set_on_device' ||
+           data.type === 'access_code.deleted' ||
+           data.type === 'access_code.removed_from_device' ||
+           data.type === 'access_code.changed' ||
+           data.type === 'access_code.updated' ||
+           data.type === 'access_code.scheduled_on_device') &&
+          data.device_id === lockId
+        ) {
+          console.log('🎯 Matching event received, refreshing codes')
+          fetchCodes(true)
+        } else {
+          console.log('⏭️ Skipping event - not relevant:', { 
+            eventType: data.type, 
+            deviceId: data.device_id,
+            expectedDeviceId: lockId 
+          })
+        }
       } catch (error) {
-        console.error('Error fetching access codes:', error)
-        setCodes([])
-      } finally {
-        setLoading(false)
+        console.error('Error processing SSE message:', error)
       }
     }
 
-    fetchCodes()
-  }, [lockId])
+    events.onerror = (error) => {
+      console.error('❌ SSE Error:', error)
+      events.close()
+      
+      setTimeout(() => {
+        console.log('🔄 Attempting to reconnect SSE')
+        events = new EventSource('/api/events')
+      }, 5000)
+    }
+
+    return () => {
+      console.log('🔌 Closing SSE connection')
+      events.close()
+    }
+  }, [lockId, fetchCodes])
 
   const copyCode = (code: string) => {
     navigator.clipboard.writeText(code)
@@ -72,17 +127,46 @@ export default function AccessCodesList({ lockId }: { lockId: string }) {
     </div>
   )
 
+  const refreshCodes = () => {
+    fetchCodes(false)
+  }
+
+  const deleteCode = async (accessCodeId: string) => {
+    try {
+      const response = await fetch(`/api/seam/${lockId}/access-code`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          access_code_id: accessCodeId
+        })
+      })
+      
+      if (response.ok) {
+        toast({
+          description: "Access code deleted successfully",
+          duration: 2000,
+        })
+        refreshCodes()
+      } else {
+        throw new Error(`Failed with status: ${response.status}`)
+      }
+    } catch (error) {
+      console.error('Error deleting access code:', error)
+      toast({
+        description: "Failed to delete access code",
+        variant: "destructive",
+        duration: 2000,
+      })
+    }
+  }
+
   return (
     <div className="space-y-4 w-full">
       <div className="flex items-center justify-between mb-4">
         <h2 className="text-xl font-semibold">Access codes</h2>
-        <Button 
-          variant="default" 
-          size="sm"
-          className="bg-black hover:bg-gray-800"
-        >
-          Add code
-        </Button>
+        <CreateAccessCodeDialog lockId={lockId} onAccessCodeCreated={refreshCodes} />
       </div>
       
       <div className="bg-gray-50 p-1 rounded-2xl overflow-hidden">
@@ -115,9 +199,9 @@ export default function AccessCodesList({ lockId }: { lockId: string }) {
                             variant="secondary" 
                             size="sm"
                             onClick={() => copyCode(code.code)}
-                            className="text-sm font-medium border border-gray-200"
+                            className="text-sm font-medium border bg-gray-50 border-gray-200 py-0 px-2"
                           >
-                            <span className="text-base font-medium">{code.code}</span>
+                            <span className="text-sm font-medium">{code.code}</span>
                             <Copy className="w-4 h-4" />
                           </Button>
                         </TooltipTrigger>
@@ -127,7 +211,7 @@ export default function AccessCodesList({ lockId }: { lockId: string }) {
                       </Tooltip>
                     </TooltipProvider>
                 </div>
-                  <div className="flex px-3 items-center gap-2 w-32">
+                <div className="flex px-3 items-center gap-2 w-32">
                     <div className={`h-2 w-2 rounded-full ${
                       code.status === 'set' ? 'bg-green-500' : 
                       code.status === 'setting' ? 'bg-yellow-500' :
@@ -140,7 +224,24 @@ export default function AccessCodesList({ lockId }: { lockId: string }) {
                       'Unset'
                     }</span>
                   </div>
-                </div>
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => deleteCode(code.access_code_id)}
+                        className="text-gray-500 hover:text-red-600"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Delete access code</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              </div>
             ))
           )}
         </div>

@@ -1,6 +1,6 @@
 'use client'
 
-import { ArrowLeftIcon, LockOpen } from "lucide-react";
+import { ArrowLeftIcon } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import AccessCodesList from "@/components/Security/AccessCodesList";
@@ -30,8 +30,8 @@ export default function DoorLockDetail({ device }: LockDetailProps) {
       <div className="flex w-full items-center mb-8">
         <div className="flex w-full items-start gap-8 flex-col">
           <button onClick={() => router.back()}>
-            <span className="flex items-center gap-2">
-              <ArrowLeftIcon className="w-5 h-5" /> Security
+            <span className="flex items-center gap-2 text-sm text-gray-800 hover:text-gray-900">
+              <ArrowLeftIcon className="w-4 h-4 text-gray-800 hover:text-gray-900" /> Security
             </span>
           </button>
           <div className="flex w-full flex-row items-center justify-between gap-2">
@@ -43,7 +43,7 @@ export default function DoorLockDetail({ device }: LockDetailProps) {
             className="rounded"
             />
             <h1 className="text-2xl font-semibold flex-1">{toSentenceCase(device.properties.name || '')}</h1>
-            <div className="flex flex-1 gap-2 justify-end">
+            <div className="flex-1 gap-2 justify-end hidden">
               <Button variant="outline" size="sm">Edit device</Button>
               <Button variant="destructive" size="sm">Remove</Button>
             </div>

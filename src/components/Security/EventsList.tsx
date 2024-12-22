@@ -10,7 +10,7 @@ export default function EventsList({ lockId }: { lockId: string }) {
   useEffect(() => {
     async function fetchEvents() {
       try {
-        const response = await fetch(`/api/webhooks/seam/${lockId}`)
+        const response = await fetch(`/api/seam/${lockId}`)
         const data = await response.json()
         setEvents(data.events || [])
       } catch (error) {

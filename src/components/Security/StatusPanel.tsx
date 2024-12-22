@@ -1,3 +1,5 @@
+'use client'
+
 import { Battery, BatteryLow, BatteryMedium, BatteryFull, Lock, LockOpen } from "lucide-react"
 import { Separator } from "@/components/ui/separator"
 

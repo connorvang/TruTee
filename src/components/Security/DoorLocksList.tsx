@@ -16,39 +16,116 @@ export default function DoorLocksList() {
   const [actionLoading, setActionLoading] = useState<string | null>(null)
   const [isConnecting, setIsConnecting] = useState(false)
   const connectWindowRef = useRef<Window | null>(null)
-  const pollIntervalRef = useRef<NodeJS.Timeout>()
   const router = useRouter()
 
-  useEffect(() => {
-    fetchLocks()
-
-    const interval = setInterval(() => {
-      fetchLocks()
-    }, 5000)
-
-    return () => clearInterval(interval)
-  }, [organization?.id])
-
-  const fetchLocks = async () => {
+  const fetchLocks = async (silent = false) => {
+    if (!silent) setLoading(true)
     try {
-      const response = await fetch('/api/webhooks/seam')
-      if (!response.ok) {
-        const error = await response.json()
-        throw new Error(error.error || 'Failed to fetch locks')
-      }
+      const response = await fetch('/api/seam')
+      console.log('API Response Status:', response.status)
+      
       const data = await response.json()
+      console.log('API Response Data:', data)
+      
+      if (!response.ok) throw new Error(`Failed to fetch locks: ${JSON.stringify(data)}`)
       setLocks(data)
-    } catch (err) {
-      console.error('Error fetching locks:', err)
+    } catch (error) {
+      console.error('Error fetching locks:', error)
+      setError(error instanceof Error ? error : new Error('Failed to fetch locks'))
     } finally {
-      setLoading(false)
+      if (!silent) setLoading(false)
     }
   }
+
+  useEffect(() => {
+    // Only set up SSE on the client side
+    if (typeof window === 'undefined' || !organization) return;
+    
+    let eventSource: EventSource | null = null;
+    let retryCount = 0;
+    let retryTimeout: NodeJS.Timeout;
+    
+    const connectSSE = () => {
+      // Close existing connection if any
+      if (eventSource) {
+        eventSource.close();
+      }
+
+      try {
+        console.log('📡 Connecting to SSE...');
+        // Only create EventSource on the client side
+        if (typeof window !== 'undefined') {
+          eventSource = new EventSource('/api/events', { withCredentials: true });
+          
+          eventSource.onmessage = (event) => {
+            try {
+              const data = JSON.parse(event.data);
+              console.log('🔄 Received SSE update:', data);
+              
+              if (
+                data.type === 'device.updated' ||
+                data.type === 'device.connected' ||
+                data.type === 'device.disconnected' ||
+                data.type === 'device.low_battery' ||
+                data.type === 'device.battery_status_changed' ||
+                data.type === 'lock.locked' ||
+                data.type === 'lock.unlocked'
+              ) {
+                console.log('📱 Device update received, refreshing locks...');
+                fetchLocks(true);
+              }
+            } catch (error) {
+              console.warn('Failed to process SSE message:', error);
+            }
+          };
+
+          eventSource.onerror = () => {
+            console.log(`❌ SSE Error (attempt ${retryCount + 1})`);
+            eventSource?.close();
+            
+            // Exponential backoff with max delay of 30 seconds
+            const delay = Math.min(1000 * Math.pow(2, retryCount), 30000);
+            retryCount++;
+            
+            retryTimeout = setTimeout(() => {
+              connectSSE();
+            }, delay);
+          };
+
+          eventSource.onopen = () => {
+            console.log('📡 SSE connection opened');
+            retryCount = 0; // Reset retry count on successful connection
+            fetchLocks();
+          };
+        }
+      } catch (error) {
+        console.error('Failed to create EventSource:', error);
+      }
+    };
+
+    // Initial fetch regardless of SSE
+    fetchLocks();
+    
+    // Then set up SSE connection
+    connectSSE();
+
+    // Cleanup function
+    return () => {
+      console.log('🔌 Cleaning up SSE connection');
+      if (eventSource) {
+        eventSource.close();
+        eventSource = null;
+      }
+      if (retryTimeout) {
+        clearTimeout(retryTimeout);
+      }
+    };
+  }, [organization]);
 
   const handleLockAction = async (deviceId: string, action: 'unlock' | 'lock') => {
     setActionLoading(deviceId)
     try {
-      const response = await fetch('/api/webhooks/seam', {
+      const response = await fetch('/api/seam', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -76,12 +153,15 @@ export default function DoorLocksList() {
 
   const handleAddDevice = async () => {
     try {
+      if (!organization) return
+      
       setIsConnecting(true)
-      const response = await fetch('/api/webhooks/seam/connect', {
+      const response = await fetch('/api/seam/connect', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
-        }
+        },
+        body: JSON.stringify({ org_id: organization.id })
       })
       
       if (!response.ok) {
@@ -102,24 +182,21 @@ export default function DoorLocksList() {
         `width=${width},height=${height},left=${left},top=${top}`
       )
 
-      // Start polling for new devices
-      pollIntervalRef.current = setInterval(async () => {
-        await fetchLocks()
-        
-        // Check if the popup is closed
+      // Wait for the connect window to close
+      const checkWindow = setInterval(() => {
         if (connectWindowRef.current?.closed) {
-          clearInterval(pollIntervalRef.current)
+          clearInterval(checkWindow)
           setIsConnecting(false)
           connectWindowRef.current = null
+          // Fetch locks once after window closes
+          fetchLocks()
         }
-      }, 2000)
+      }, 1000)
 
       // Cleanup after 5 minutes
       setTimeout(() => {
-        if (pollIntervalRef.current) {
-          clearInterval(pollIntervalRef.current)
-          setIsConnecting(false)
-        }
+        clearInterval(checkWindow)
+        setIsConnecting(false)
       }, 300000)
 
     } catch (err) {
@@ -128,14 +205,6 @@ export default function DoorLocksList() {
       setIsConnecting(false)
     }
   }
-
-  useEffect(() => {
-    return () => {
-      if (pollIntervalRef.current) {
-        clearInterval(pollIntervalRef.current)
-      }
-    }
-  }, [])
 
   const Skeleton = () => (
     <div className="flex flex-col">
@@ -289,4 +358,8 @@ export default function DoorLocksList() {
       </div>
     </div>
   )
+}
+
+function setError(arg0: Error) {
+  throw new Error('Function not implemented.')
 }

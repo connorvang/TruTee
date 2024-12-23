@@ -31,7 +31,7 @@ export const sidebarConfig = {
     },
     {
       title: "Customers",
-      url: "#",
+      url: "/admin/customers",
       icon: UsersIcon,
     },
     {

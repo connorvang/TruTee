@@ -7,6 +7,7 @@ import { Battery, BatteryLow, BatteryMedium, BatteryFull, Lock, LockOpen, Chevro
 import { useOrganization } from '@clerk/nextjs'
 import { useRouter } from 'next/navigation'
 import { Device } from '@/types/seam'
+import { toast } from '@/hooks/use-toast'
 
 
 export default function DoorLocksList() {
@@ -17,6 +18,7 @@ export default function DoorLocksList() {
   const [isConnecting, setIsConnecting] = useState(false)
   const connectWindowRef = useRef<Window | null>(null)
   const router = useRouter()
+  const [loadingLocks, setLoadingLocks] = useState<Set<string>>(new Set());
 
   const fetchLocks = async (silent = false) => {
     if (!silent) setLoading(true)
@@ -38,118 +40,22 @@ export default function DoorLocksList() {
   }
 
   useEffect(() => {
-    // Only set up SSE on the client side
-    if (typeof window === 'undefined' || !organization) return;
+    if (!organization) return;
     
-    let eventSource: EventSource | null = null;
-    let retryCount = 0;
-    let retryTimeout: NodeJS.Timeout;
-    
-    const connectSSE = () => {
-      // Close existing connection if any
-      if (eventSource) {
-        eventSource.close();
-      }
-
-      try {
-        console.log('📡 Connecting to SSE...');
-        // Only create EventSource on the client side
-        if (typeof window !== 'undefined') {
-          eventSource = new EventSource('/api/events', { withCredentials: true });
-          
-          eventSource.onmessage = (event) => {
-            try {
-              const data = JSON.parse(event.data);
-              console.log('🔄 Received SSE update:', data);
-              
-              if (
-                data.type === 'device.updated' ||
-                data.type === 'device.connected' ||
-                data.type === 'device.disconnected' ||
-                data.type === 'device.low_battery' ||
-                data.type === 'device.battery_status_changed' ||
-                data.type === 'lock.locked' ||
-                data.type === 'lock.unlocked'
-              ) {
-                console.log('📱 Device update received, refreshing locks...');
-                fetchLocks(true);
-              }
-            } catch (error) {
-              console.warn('Failed to process SSE message:', error);
-            }
-          };
-
-          eventSource.onerror = () => {
-            console.log(`❌ SSE Error (attempt ${retryCount + 1})`);
-            eventSource?.close();
-            
-            // Exponential backoff with max delay of 30 seconds
-            const delay = Math.min(1000 * Math.pow(2, retryCount), 30000);
-            retryCount++;
-            
-            retryTimeout = setTimeout(() => {
-              connectSSE();
-            }, delay);
-          };
-
-          eventSource.onopen = () => {
-            console.log('📡 SSE connection opened');
-            retryCount = 0; // Reset retry count on successful connection
-            fetchLocks();
-          };
-        }
-      } catch (error) {
-        console.error('Failed to create EventSource:', error);
-      }
-    };
-
-    // Initial fetch regardless of SSE
+    // Initial fetch
     fetchLocks();
     
-    // Then set up SSE connection
-    connectSSE();
-
-    // Cleanup function
+    // Set up polling interval (every 10 seconds)
+    const pollInterval = setInterval(() => {
+      fetchLocks(true); // true = background refresh
+    }, 10000);
+    
+    // Cleanup
     return () => {
-      console.log('🔌 Cleaning up SSE connection');
-      if (eventSource) {
-        eventSource.close();
-        eventSource = null;
-      }
-      if (retryTimeout) {
-        clearTimeout(retryTimeout);
-      }
+      clearInterval(pollInterval);
     };
   }, [organization]);
 
-  const handleLockAction = async (deviceId: string, action: 'unlock' | 'lock') => {
-    setActionLoading(deviceId)
-    try {
-      const response = await fetch('/api/seam', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ deviceId, action }),
-      })
-      
-      const data = await response.json()
-      
-      if (!response.ok) {
-        if (data.code === 'error_from_august_api_status_code_524') {
-          throw new Error('Unable to reach the lock. Please check if the lock is online and try again.')
-        }
-        throw new Error(data.error || `Failed to ${action} door`)
-      }
-
-      await fetchLocks()
-    } catch (err) {
-      console.error(`${action} error:`, err)
-      alert(err instanceof Error ? err.message : `Failed to ${action} door`)
-    } finally {
-      setActionLoading(null)
-    }
-  }
 
   const handleAddDevice = async () => {
     try {
@@ -232,6 +138,100 @@ export default function DoorLocksList() {
   const handleDeviceClick = (deviceId: string) => {
     router.push(`/admin/security/${deviceId}`)
   }
+
+  const handleLock = async (deviceId: string) => {
+    try {
+      setLoadingLocks(prev => new Set(prev).add(deviceId));
+      
+      const response = await fetch('/api/seam', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ deviceId, action: 'lock' }),
+      });
+
+      const data = await response.json();
+      
+      if (!response.ok) {
+        if (data.code === 'error_from_august_api_status_code_524') {
+          throw new Error('Unable to reach the lock. Please check if the lock is online and try again.');
+        }
+        throw new Error(data.error || 'Failed to lock door');
+      }
+
+      toast({
+        title: "Lock command sent",
+        description: "The lock state will update in a few seconds.",
+        variant: "default",
+      });
+
+      await fetchLocks(true);
+      setTimeout(() => fetchLocks(true), 3000);
+      setTimeout(() => fetchLocks(true), 6000);
+      
+    } catch (error) {
+      console.error('Error locking device:', error);
+      toast({
+        title: "Lock failed",
+        description: error instanceof Error ? error.message : "Failed to lock device. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setLoadingLocks(prev => {
+        const next = new Set(prev);
+        next.delete(deviceId);
+        return next;
+      });
+    }
+  };
+
+  const handleUnlock = async (deviceId: string) => {
+    try {
+      setLoadingLocks(prev => new Set(prev).add(deviceId));
+      
+      const response = await fetch('/api/seam', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ deviceId, action: 'unlock' }),
+      });
+
+      const data = await response.json();
+      
+      if (!response.ok) {
+        if (data.code === 'error_from_august_api_status_code_524') {
+          throw new Error('Unable to reach the lock. Please check if the lock is online and try again.');
+        }
+        throw new Error(data.error || 'Failed to unlock door');
+      }
+
+      toast({
+        title: "Unlock command sent",
+        description: "The lock state will update in a few seconds.",
+        variant: "default",
+      });
+
+      await fetchLocks(true);
+      setTimeout(() => fetchLocks(true), 3000);
+      setTimeout(() => fetchLocks(true), 6000);
+      
+    } catch (error) {
+      console.error('Error unlocking device:', error);
+      toast({
+        title: "Unlock failed",
+        description: error instanceof Error ? error.message : "Failed to unlock device. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setLoadingLocks(prev => {
+        const next = new Set(prev);
+        next.delete(deviceId);
+        return next;
+      });
+    }
+  };
 
   return (
     <div className="flex flex-col gap-12 max-w-[1440px] mx-auto">
@@ -336,12 +336,16 @@ export default function DoorLocksList() {
                       size="sm"
                       onClick={(e) => {
                         e.stopPropagation() // Prevent navigation when clicking the button
-                        handleLockAction(lock.device_id, lock.properties.locked ? 'unlock' : 'lock')
+                        if (lock.properties.locked) {
+                          handleUnlock(lock.device_id)
+                        } else {
+                          handleLock(lock.device_id)
+                        }
                       }}
-                      disabled={actionLoading === lock.device_id || !lock.properties.online}
+                      disabled={loadingLocks.has(lock.device_id) || !lock.properties.online}
                       className="min-w-[80px]"
                     >
-                      {actionLoading === lock.device_id ? (
+                      {loadingLocks.has(lock.device_id) ? (
                         <div className="w-4 h-4 border-2 border-gray-300 border-t-gray-600 rounded-full animate-spin" />
                       ) : lock.properties.locked ? (
                         'Unlock'

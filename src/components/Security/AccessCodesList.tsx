@@ -37,57 +37,21 @@ export default function AccessCodesList({ lockId }: { lockId: string }) {
   }, [lockId])
 
   useEffect(() => {
-    fetchCodes()
-  }, [fetchCodes])
-
-  useEffect(() => {
-    let events = new EventSource('/api/events')
-    console.log('🔌 Setting up SSE connection')
+    if (!lockId) return;
     
-    events.onmessage = (event) => {
-      try {
-        const data = JSON.parse(event.data)
-        console.log('🔄 Received SSE update:', data)
-        
-        if (
-          (data.type === 'access_code.created' ||
-           data.type === 'access_code.set_on_device' ||
-           data.type === 'access_code.deleted' ||
-           data.type === 'access_code.removed_from_device' ||
-           data.type === 'access_code.changed' ||
-           data.type === 'access_code.updated' ||
-           data.type === 'access_code.scheduled_on_device') &&
-          data.device_id === lockId
-        ) {
-          console.log('🎯 Matching event received, refreshing codes')
-          fetchCodes(true)
-        } else {
-          console.log('⏭️ Skipping event - not relevant:', { 
-            eventType: data.type, 
-            deviceId: data.device_id,
-            expectedDeviceId: lockId 
-          })
-        }
-      } catch (error) {
-        console.error('Error processing SSE message:', error)
-      }
-    }
-
-    events.onerror = (error) => {
-      console.error('❌ SSE Error:', error)
-      events.close()
-      
-      setTimeout(() => {
-        console.log('🔄 Attempting to reconnect SSE')
-        events = new EventSource('/api/events')
-      }, 5000)
-    }
-
+    // Initial fetch
+    fetchCodes();
+    
+    // Set up polling interval (every 10 seconds)
+    const pollInterval = setInterval(() => {
+      fetchCodes(true); // true = background refresh
+    }, 10000);
+    
+    // Cleanup
     return () => {
-      console.log('🔌 Closing SSE connection')
-      events.close()
-    }
-  }, [lockId, fetchCodes])
+      clearInterval(pollInterval);
+    };
+  }, [lockId, fetchCodes]);
 
   const copyCode = (code: string) => {
     navigator.clipboard.writeText(code)

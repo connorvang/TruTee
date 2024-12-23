@@ -1,6 +1,6 @@
 import { Webhook } from 'svix'
 import { headers } from 'next/headers'
-import { broadcast } from '@/app/api/events/broadcast'
+
 
 // Define an interface for your webhook payload
 interface SeamWebhookPayload {
@@ -70,7 +70,6 @@ export async function POST(request: Request) {
       case 'access_code.updated':
       case 'access_code.scheduled_on_device':
         console.log('🎯 Broadcasting event:', evt.event_type)
-        broadcast(evt.event_type, evt.data)
         break
       // Lock Action Events
       case 'action_attempt.lock_door.failed':
@@ -116,7 +115,6 @@ export async function POST(request: Request) {
       case 'lock.locked':
       case 'lock.unlocked':
         console.log('🎯 Broadcasting event:', evt.event_type)
-        broadcast(evt.event_type, evt.data)
         break
       default:
         console.log('ℹ️ Unhandled event:', evt.event_type, evt.data)

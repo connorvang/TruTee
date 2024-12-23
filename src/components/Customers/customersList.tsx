@@ -80,7 +80,7 @@ export default function CustomersList() {
                     <td className="px-6 py-4 max-w-24 text-sm font-medium text-gray-900">{`${user?.first_name || ''} ${user?.last_name || ''}`}</td>
                     <td className="px-6 py-4 text-sm text-blue-600"><a href={`mailto:${user?.email}`}>{user?.email}</a></td>
                     <td className="px-6 py-4 text-sm text-gray-500 max-w-24">
-                      {user?.created_at && new Date(user.created_at).toLocaleDateString()}
+                      {customer.created_at && new Date(customer.created_at).toLocaleDateString()}
                     </td>
                   </tr>
                 );

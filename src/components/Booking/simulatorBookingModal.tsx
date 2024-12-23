@@ -12,6 +12,8 @@ import { useIsMobile } from "@/hooks/use-mobile"
 import { Separator } from "@/components/ui/separator"
 import { Badge } from '@/components/ui/badge'
 import { ScrollArea } from '@/components/ui/scroll-area'
+import { addOrganizationUser } from '@/actions/addOrganizationUser'
+
 interface BookingModalProps {
   isOpen: boolean
   onClose: () => void
@@ -34,6 +36,7 @@ interface BookingModalProps {
   onBookingComplete: () => void
   organizationName: string
   organizationImage: string
+  organizationId: string
 }
 
 const formatTo12Hour = (time24: string) => {
@@ -43,7 +46,7 @@ const formatTo12Hour = (time24: string) => {
   return `${hours12}:${minutes.toString().padStart(2, '0')} ${period}`;
 };
 
-export function BookingModal({ isOpen, onClose, teeTime, onBookingComplete, organizationName, organizationImage }: BookingModalProps) {
+export function BookingModal({ isOpen, onClose, teeTime, onBookingComplete, organizationName, organizationImage, organizationId }: BookingModalProps) {
   const { user } = useUser()
   const [isLoading, setIsLoading] = useState(false)
   const supabase = createClientComponentClient()
@@ -131,6 +134,13 @@ export function BookingModal({ isOpen, onClose, teeTime, onBookingComplete, orga
         throw new Error('Failed to update tee time availability')
       }
 
+      console.log('Adding user to organization:', { 
+        userId: user.id, 
+        organizationId 
+      })
+      
+      await addOrganizationUser(user.id, organizationId)
+
       toast({
         title: "Success!",
         description: `Your ${selectedDuration} minute simulator session has been booked.`,
@@ -141,7 +151,7 @@ export function BookingModal({ isOpen, onClose, teeTime, onBookingComplete, orga
       onBookingComplete()
       onClose()
     } catch (error) {
-      console.error('Booking error:', error)
+      console.error('Full booking error:', error)
       toast({
         title: "Error",
         description: error instanceof Error ? error.message : "Failed to book tee time. Please try again.",

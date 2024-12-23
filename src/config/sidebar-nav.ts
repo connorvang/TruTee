@@ -1,11 +1,6 @@
 import {
-  CalendarIcon,
-  ChartBar,
-  CircleDollarSign,
-  HelpCircle,
   HomeIcon,
   LandPlot,
-  MessagesSquare,
   SettingsIcon,
   ShieldCheck,
   UsersIcon,
@@ -25,34 +20,14 @@ export const sidebarConfig = {
       matchExact: true,
     },
     {
-      title: "Events",
-      url: "#",
-      icon: CalendarIcon,
-    },
-    {
       title: "Customers",
-      url: "#",
+      url: "/admin/customers",
       icon: UsersIcon,
-    },
-    {
-      title: "Pricing",
-      url: "#",
-      icon: CircleDollarSign,
     },
     {
       title: "Security",
       url: "/admin/security",
       icon: ShieldCheck,
-    },
-    {
-      title: "Messages",
-      url: "#",
-      icon: MessagesSquare,
-    },
-    {
-      title: "Reports",
-      url: "#",
-      icon: ChartBar,
     },
   ],
   projects: [
@@ -60,11 +35,6 @@ export const sidebarConfig = {
       name: "Settings",
       url: "/admin/settings",
       icon: SettingsIcon,
-    },
-    {
-      name: "Help",
-      url: "#",
-      icon: HelpCircle,
     },
     {
       name: "User portal",

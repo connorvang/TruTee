@@ -12,6 +12,8 @@ import { useIsMobile } from "@/hooks/use-mobile"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Separator } from "@/components/ui/separator"
 import { ScrollArea } from "@/components/ui/scroll-area"
+import { addOrganizationUser } from '@/actions/addOrganizationUser'
+
 interface BookingModalProps {
   isOpen: boolean
   onClose: () => void
@@ -30,6 +32,7 @@ interface BookingModalProps {
   onBookingComplete: () => void
   organizationName: string
   organizationImage: string
+  organizationId: string
 }
 
 // Add this helper function to convert 24h to 12h format
@@ -40,7 +43,7 @@ const formatTo12Hour = (time24: string) => {
   return `${hours12}:${minutes.toString().padStart(2, '0')} ${period}`;
 };
 
-export function BookingModal({ isOpen, onClose, teeTime, onBookingComplete, organizationName, organizationImage }: BookingModalProps) {
+export function BookingModal({ isOpen, onClose, teeTime, onBookingComplete, organizationName, organizationImage, organizationId }: BookingModalProps) {
   const { user } = useUser()
   const [numberOfSpots, setNumberOfSpots] = useState(1)
   const [numberOfHoles, setNumberOfHoles] = useState<9 | 18>(18)
@@ -75,7 +78,7 @@ export function BookingModal({ isOpen, onClose, teeTime, onBookingComplete, orga
       const { data: newBooking, error: bookingError } = await supabase
         .from('bookings')
         .insert({
-          user_id: user.id, // Use Clerk user ID directly
+          user_id: user.id,
           number_of_holes: numberOfHoles,
           has_cart: hasCart === "true",
           guests: guests,
@@ -114,6 +117,8 @@ export function BookingModal({ isOpen, onClose, teeTime, onBookingComplete, orga
         .eq('id', teeTime.id)
 
       if (updateError) throw updateError
+
+      await addOrganizationUser(user.id, organizationId)
 
       toast({
         title: "Success!",

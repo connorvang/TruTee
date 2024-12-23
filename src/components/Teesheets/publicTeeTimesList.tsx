@@ -83,6 +83,7 @@ export default function TeeTimesList({
   const [isBookingModalOpen, setIsBookingModalOpen] = useState(false)
   const { isSignedIn } = useAuth();
 
+  console.log('organizationId in TeeTimesList:', organizationId);
 
   useEffect(() => {
     if (!date || !organizationId) {
@@ -229,6 +230,7 @@ export default function TeeTimesList({
               isOpen={isBookingModalOpen}
               onClose={() => setIsBookingModalOpen(false)}
               teeTime={selectedTeeTime}
+              organizationId={organizationId}
               organizationName={organizationName}
               organizationImage={organizationImage}
               onBookingComplete={() => {

@@ -388,6 +388,7 @@ export default function SimulatorTimesList({
               isOpen={isBookingModalOpen}
               onClose={() => setIsBookingModalOpen(false)}
               teeTime={selectedTeeTime} 
+              organizationId={organizationId}
               organizationName={organizationName}
               organizationImage={organizationImage}
               onBookingComplete={() => {

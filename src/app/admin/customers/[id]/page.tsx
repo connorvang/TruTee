@@ -2,22 +2,19 @@ import { Breadcrumb, BreadcrumbItem, BreadcrumbList, BreadcrumbPage, BreadcrumbS
 import { Separator } from "@/components/ui/separator"
 import { SidebarProvider, SidebarTrigger, SidebarInset } from "@/components/ui/sidebar"
 import { AppSidebar } from "@/components/Sidenav/app-sidebar"
-import DoorLockDetail from "@/components/Security/DoorLockDetail"
-import { Seam } from "seam"
+import { getUser } from "@/actions/getUser"
 
-export default async function DoorLockDetailPage({ 
+export default async function CustomerDetailPage({ 
   params 
 }: { 
-  params: Promise<{ deviceId: string }> 
+  params: Promise<{ id: string }> 
 }) {
-  const { deviceId } = await params
+  const { id } = await params
   
-  // Fetch lock details
-  const seam = new Seam()
-  const device = await seam.devices.get({ device_id: deviceId })
+  const user = await getUser(id)
 
-  if (!device) {
-    return <div>Device not found</div>
+  if (!user) {
+    return <div>User not found</div>
   }
 
   return (
@@ -31,20 +28,37 @@ export default async function DoorLockDetailPage({
             <Breadcrumb>
               <BreadcrumbList>
                 <BreadcrumbItem>
-                  <BreadcrumbLink href="/admin/security">Security</BreadcrumbLink>
+                  <BreadcrumbLink href="/admin/customers">Customers</BreadcrumbLink>
                 </BreadcrumbItem>
                 <BreadcrumbSeparator />
                 <BreadcrumbItem>
-                  <BreadcrumbPage>{device.display_name}</BreadcrumbPage>
+                  <BreadcrumbPage>{user.first_name} {user.last_name}</BreadcrumbPage>
                 </BreadcrumbItem>
               </BreadcrumbList>
             </Breadcrumb>
           </div>
         </header>
         <div className="pt-8 px-6">
-          <DoorLockDetail device={device} />
+          <div className="space-y-4">
+            <div>
+              <h2 className="font-semibold">Email</h2>
+              <p>{user.email}</p>
+            </div>
+            {user.first_name && (
+              <div>
+                <h2 className="font-semibold">Name</h2>
+                <p>{`${user.first_name} ${user.last_name || ''}`}</p>
+              </div>
+            )}
+            {user.organizations && (
+              <div>
+                <h2 className="font-semibold">Organization</h2>
+                <p>{user.organizations.name}</p>
+              </div>
+            )}
+          </div>
         </div>
       </SidebarInset>
     </SidebarProvider>
   )
-} 
+}

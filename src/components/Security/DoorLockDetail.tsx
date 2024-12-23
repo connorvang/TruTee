@@ -17,10 +17,6 @@ interface LockDetailProps {
 }
 
 
-  const toSentenceCase = (str: string) => {
-    return str.toLowerCase().replace(/^\w/, c => c.toUpperCase());
-  }
-
 export default function DoorLockDetail({ device }: LockDetailProps) {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<'codes' | 'events'>('codes');
@@ -122,7 +118,7 @@ export default function DoorLockDetail({ device }: LockDetailProps) {
             height={40}
             className="rounded"
             />
-            <h1 className="text-2xl font-semibold flex-1">{toSentenceCase(device.properties.name || '')}</h1>
+            <h1 className="text-2xl font-semibold flex-1">{device.display_name}</h1>
             <div className="flex flex-1 gap-2 justify-end">
               <Button
                 variant="outline"

@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { useOrganization } from '@clerk/nextjs'
 import { getCustomers, Customer } from '@/actions/getCustomers'
 import { Users, Loader2 } from 'lucide-react'
+import { useRouter } from 'next/navigation'
 
 // Skeleton component for loading state
 const Skeleton = () => (
@@ -22,6 +23,7 @@ const Skeleton = () => (
 )
 
 export default function CustomersList() {
+  const router = useRouter()
   const [customers, setCustomers] = useState<Customer[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<Error | null>(null)
@@ -47,6 +49,13 @@ export default function CustomersList() {
     fetchCustomers()
   }, [organization?.id])
 
+  const handleRowClick = (customer: Customer) => {
+    const user = Array.isArray(customer.users) ? customer.users[0] : customer.users;
+    if (user?.id) {
+      router.push(`/admin/customers/${user.id}`)
+    }
+  }
+
   return (
     <div className="p-0">
 
@@ -69,17 +78,21 @@ export default function CustomersList() {
               <tr className="bg-white border-b border-gray-100">
                 <th className="px-6 py-3 max-w-24 text-left text-sm font-medium text-gray-600">Name</th>
                 <th className="px-6 py-3 text-left text-sm font-medium text-gray-600">Email</th>
-                <th className="px-6 py-3 max-w-24 text-left text-sm font-medium text-gray-600">Joined</th>
+                <th className="px-6 py-3 max-w-8 text-left text-sm font-medium text-gray-600">Joined</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200">
               {customers.map((customer) => {
                 const user = Array.isArray(customer.users) ? customer.users[0] : customer.users;
                 return (
-                  <tr key={customer.id} className="hover:bg-gray-50 border-b border-gray-100">
+                  <tr 
+                    key={customer.id} 
+                    className="hover:bg-gray-50 border-b border-gray-100 cursor-pointer" 
+                    onClick={() => handleRowClick(customer)}
+                  >
                     <td className="px-6 py-4 max-w-24 text-sm font-medium text-gray-900">{`${user?.first_name || ''} ${user?.last_name || ''}`}</td>
                     <td className="px-6 py-4 text-sm text-blue-600"><a href={`mailto:${user?.email}`}>{user?.email}</a></td>
-                    <td className="px-6 py-4 text-sm text-gray-500 max-w-24">
+                    <td className="px-6 py-4 text-sm text-gray-500 max-w-8">
                       {customer.created_at && new Date(customer.created_at).toLocaleDateString()}
                     </td>
                   </tr>

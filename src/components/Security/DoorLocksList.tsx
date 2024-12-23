@@ -131,9 +131,6 @@ export default function DoorLocksList() {
     </div>
   )
 
-  const toSentenceCase = (str: string) => {
-    return str.toLowerCase().replace(/^\w/, c => c.toUpperCase());
-  }
 
   const handleDeviceClick = (deviceId: string) => {
     router.push(`/admin/security/${deviceId}`)
@@ -292,7 +289,7 @@ export default function DoorLocksList() {
                       className="rounded"
                     />
                     <div className="flex items-center gap-2">
-                      <span className="text-sm font-medium">{toSentenceCase(lock.display_name)}</span>
+                      <span className="text-sm font-medium">{lock.display_name}</span>
                       <ChevronRight className="w-4 h-4 text-gray-400" />
                     </div>
                   </div>

@@ -25,12 +25,12 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
     ...item,
     isActive: 'matchExact' in item
       ? pathname === item.url
-      : pathname.startsWith(item.url) && item.url !== "#"
+      : pathname.startsWith(item.url)
   }))
 
   const activeProjects = sidebarConfig.projects.map(item => ({
     ...item,
-    isActive: item.url !== "#" && pathname.startsWith(item.url)
+    isActive: pathname.startsWith(item.url)
   }))
 
   return (

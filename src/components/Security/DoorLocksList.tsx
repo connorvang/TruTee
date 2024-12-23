@@ -7,6 +7,7 @@ import { Battery, BatteryLow, BatteryMedium, BatteryFull, Lock, LockOpen, Chevro
 import { useOrganization } from '@clerk/nextjs'
 import { useRouter } from 'next/navigation'
 import { Device } from '@/types/seam'
+import { toast } from '@/hooks/use-toast'
 
 
 export default function DoorLocksList() {
@@ -16,72 +17,57 @@ export default function DoorLocksList() {
   const [actionLoading, setActionLoading] = useState<string | null>(null)
   const [isConnecting, setIsConnecting] = useState(false)
   const connectWindowRef = useRef<Window | null>(null)
-  const pollIntervalRef = useRef<NodeJS.Timeout>()
   const router = useRouter()
+  const [loadingLocks, setLoadingLocks] = useState<Set<string>>(new Set());
 
-  useEffect(() => {
-    fetchLocks()
-
-    const interval = setInterval(() => {
-      fetchLocks()
-    }, 5000)
-
-    return () => clearInterval(interval)
-  }, [organization?.id])
-
-  const fetchLocks = async () => {
+  const fetchLocks = async (silent = false) => {
+    if (!silent) setLoading(true)
     try {
-      const response = await fetch('/api/webhooks/seam')
-      if (!response.ok) {
-        const error = await response.json()
-        throw new Error(error.error || 'Failed to fetch locks')
-      }
+      const response = await fetch('/api/seam')
+      console.log('API Response Status:', response.status)
+      
       const data = await response.json()
+      console.log('API Response Data:', data)
+      
+      if (!response.ok) throw new Error(`Failed to fetch locks: ${JSON.stringify(data)}`)
       setLocks(data)
-    } catch (err) {
-      console.error('Error fetching locks:', err)
+    } catch (error) {
+      console.error('Error fetching locks:', error)
+      setError(error instanceof Error ? error : new Error('Failed to fetch locks'))
     } finally {
-      setLoading(false)
+      if (!silent) setLoading(false)
     }
   }
 
-  const handleLockAction = async (deviceId: string, action: 'unlock' | 'lock') => {
-    setActionLoading(deviceId)
+  useEffect(() => {
+    if (!organization) return;
+    
+    // Initial fetch
+    fetchLocks();
+    
+    // Set up polling interval (every 10 seconds)
+    const pollInterval = setInterval(() => {
+      fetchLocks(true); // true = background refresh
+    }, 10000);
+    
+    // Cleanup
+    return () => {
+      clearInterval(pollInterval);
+    };
+  }, [organization]);
+
+
+  const handleAddDevice = async () => {
     try {
-      const response = await fetch('/api/webhooks/seam', {
+      if (!organization) return
+      
+      setIsConnecting(true)
+      const response = await fetch('/api/seam/connect', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify({ deviceId, action }),
-      })
-      
-      const data = await response.json()
-      
-      if (!response.ok) {
-        if (data.code === 'error_from_august_api_status_code_524') {
-          throw new Error('Unable to reach the lock. Please check if the lock is online and try again.')
-        }
-        throw new Error(data.error || `Failed to ${action} door`)
-      }
-
-      await fetchLocks()
-    } catch (err) {
-      console.error(`${action} error:`, err)
-      alert(err instanceof Error ? err.message : `Failed to ${action} door`)
-    } finally {
-      setActionLoading(null)
-    }
-  }
-
-  const handleAddDevice = async () => {
-    try {
-      setIsConnecting(true)
-      const response = await fetch('/api/webhooks/seam/connect', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        }
+        body: JSON.stringify({ org_id: organization.id })
       })
       
       if (!response.ok) {
@@ -102,24 +88,21 @@ export default function DoorLocksList() {
         `width=${width},height=${height},left=${left},top=${top}`
       )
 
-      // Start polling for new devices
-      pollIntervalRef.current = setInterval(async () => {
-        await fetchLocks()
-        
-        // Check if the popup is closed
+      // Wait for the connect window to close
+      const checkWindow = setInterval(() => {
         if (connectWindowRef.current?.closed) {
-          clearInterval(pollIntervalRef.current)
+          clearInterval(checkWindow)
           setIsConnecting(false)
           connectWindowRef.current = null
+          // Fetch locks once after window closes
+          fetchLocks()
         }
-      }, 2000)
+      }, 1000)
 
       // Cleanup after 5 minutes
       setTimeout(() => {
-        if (pollIntervalRef.current) {
-          clearInterval(pollIntervalRef.current)
-          setIsConnecting(false)
-        }
+        clearInterval(checkWindow)
+        setIsConnecting(false)
       }, 300000)
 
     } catch (err) {
@@ -128,14 +111,6 @@ export default function DoorLocksList() {
       setIsConnecting(false)
     }
   }
-
-  useEffect(() => {
-    return () => {
-      if (pollIntervalRef.current) {
-        clearInterval(pollIntervalRef.current)
-      }
-    }
-  }, [])
 
   const Skeleton = () => (
     <div className="flex flex-col">
@@ -163,6 +138,100 @@ export default function DoorLocksList() {
   const handleDeviceClick = (deviceId: string) => {
     router.push(`/admin/security/${deviceId}`)
   }
+
+  const handleLock = async (deviceId: string) => {
+    try {
+      setLoadingLocks(prev => new Set(prev).add(deviceId));
+      
+      const response = await fetch('/api/seam', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ deviceId, action: 'lock' }),
+      });
+
+      const data = await response.json();
+      
+      if (!response.ok) {
+        if (data.code === 'error_from_august_api_status_code_524') {
+          throw new Error('Unable to reach the lock. Please check if the lock is online and try again.');
+        }
+        throw new Error(data.error || 'Failed to lock door');
+      }
+
+      toast({
+        title: "Lock command sent",
+        description: "The lock state will update in a few seconds.",
+        variant: "default",
+      });
+
+      await fetchLocks(true);
+      setTimeout(() => fetchLocks(true), 3000);
+      setTimeout(() => fetchLocks(true), 6000);
+      
+    } catch (error) {
+      console.error('Error locking device:', error);
+      toast({
+        title: "Lock failed",
+        description: error instanceof Error ? error.message : "Failed to lock device. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setLoadingLocks(prev => {
+        const next = new Set(prev);
+        next.delete(deviceId);
+        return next;
+      });
+    }
+  };
+
+  const handleUnlock = async (deviceId: string) => {
+    try {
+      setLoadingLocks(prev => new Set(prev).add(deviceId));
+      
+      const response = await fetch('/api/seam', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ deviceId, action: 'unlock' }),
+      });
+
+      const data = await response.json();
+      
+      if (!response.ok) {
+        if (data.code === 'error_from_august_api_status_code_524') {
+          throw new Error('Unable to reach the lock. Please check if the lock is online and try again.');
+        }
+        throw new Error(data.error || 'Failed to unlock door');
+      }
+
+      toast({
+        title: "Unlock command sent",
+        description: "The lock state will update in a few seconds.",
+        variant: "default",
+      });
+
+      await fetchLocks(true);
+      setTimeout(() => fetchLocks(true), 3000);
+      setTimeout(() => fetchLocks(true), 6000);
+      
+    } catch (error) {
+      console.error('Error unlocking device:', error);
+      toast({
+        title: "Unlock failed",
+        description: error instanceof Error ? error.message : "Failed to unlock device. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setLoadingLocks(prev => {
+        const next = new Set(prev);
+        next.delete(deviceId);
+        return next;
+      });
+    }
+  };
 
   return (
     <div className="flex flex-col gap-12 max-w-[1440px] mx-auto">
@@ -267,12 +336,16 @@ export default function DoorLocksList() {
                       size="sm"
                       onClick={(e) => {
                         e.stopPropagation() // Prevent navigation when clicking the button
-                        handleLockAction(lock.device_id, lock.properties.locked ? 'unlock' : 'lock')
+                        if (lock.properties.locked) {
+                          handleUnlock(lock.device_id)
+                        } else {
+                          handleLock(lock.device_id)
+                        }
                       }}
-                      disabled={actionLoading === lock.device_id || !lock.properties.online}
+                      disabled={loadingLocks.has(lock.device_id) || !lock.properties.online}
                       className="min-w-[80px]"
                     >
-                      {actionLoading === lock.device_id ? (
+                      {loadingLocks.has(lock.device_id) ? (
                         <div className="w-4 h-4 border-2 border-gray-300 border-t-gray-600 rounded-full animate-spin" />
                       ) : lock.properties.locked ? (
                         'Unlock'
@@ -289,4 +362,8 @@ export default function DoorLocksList() {
       </div>
     </div>
   )
+}
+
+function setError(arg0: Error) {
+  throw new Error('Function not implemented.')
 }

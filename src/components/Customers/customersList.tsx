@@ -78,6 +78,7 @@ export default function CustomersList() {
               <tr className="bg-white border-b border-gray-100">
                 <th className="px-6 py-3 max-w-24 text-left text-sm font-medium text-gray-600">Name</th>
                 <th className="px-6 py-3 text-left text-sm font-medium text-gray-600">Email</th>
+                <th className="px-6 py-3 max-w-24 text-left text-sm font-medium text-gray-600">GHIN</th>
                 <th className="px-6 py-3 max-w-8 text-left text-sm font-medium text-gray-600">Joined</th>
               </tr>
             </thead>
@@ -92,7 +93,9 @@ export default function CustomersList() {
                   >
                     <td className="px-6 py-4 max-w-24 text-sm font-medium text-gray-900">{`${user?.first_name || ''} ${user?.last_name || ''}`}</td>
                     <td className="px-6 py-4 text-sm text-blue-600"><a href={`mailto:${user?.email}`}>{user?.email}</a></td>
-                    <td className="px-6 py-4 text-sm text-gray-500 max-w-8">
+                    <td className="px-6 py-4 max-w-24 text-sm text-gray-900">{`${user?.ghin || ''}`}</td>
+
+                    <td className="px-6 py-4 text-sm text-gray-900 max-w-8">
                       {customer.created_at && new Date(customer.created_at).toLocaleDateString()}
                     </td>
                   </tr>

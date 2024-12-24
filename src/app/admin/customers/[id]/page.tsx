@@ -2,9 +2,10 @@ import { Breadcrumb, BreadcrumbItem, BreadcrumbList, BreadcrumbPage, BreadcrumbS
 import { Separator } from "@/components/ui/separator"
 import { SidebarProvider, SidebarTrigger, SidebarInset } from "@/components/ui/sidebar"
 import { AppSidebar } from "@/components/Sidenav/app-sidebar"
+import CustomerDetailContent from "@/components/Customers/CustomerDetailPage"
 import { getUser } from "@/actions/getUser"
 
-export default async function CustomerDetailPage({ 
+export default async function CustomerDetail({ 
   params 
 }: { 
   params: Promise<{ id: string }> 
@@ -13,7 +14,7 @@ export default async function CustomerDetailPage({
   
   const user = await getUser(id)
 
-  if (!user) {
+  if (!user) {  
     return <div>User not found</div>
   }
 
@@ -39,26 +40,9 @@ export default async function CustomerDetailPage({
           </div>
         </header>
         <div className="pt-8 px-6">
-          <div className="space-y-4">
-            <div>
-              <h2 className="font-semibold">Email</h2>
-              <p>{user.email}</p>
-            </div>
-            {user.first_name && (
-              <div>
-                <h2 className="font-semibold">Name</h2>
-                <p>{`${user.first_name} ${user.last_name || ''}`}</p>
-              </div>
-            )}
-            {user.organizations && (
-              <div>
-                <h2 className="font-semibold">Organization</h2>
-                <p>{user.organizations.name}</p>
-              </div>
-            )}
-          </div>
+          <CustomerDetailContent user={user} />
         </div>
       </SidebarInset>
     </SidebarProvider>
   )
-}
+} 

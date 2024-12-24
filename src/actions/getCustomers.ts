@@ -13,6 +13,7 @@ export interface Customer {
     last_name: string;
     handicap: number;
     created_at: string;
+    ghin: string;
   }[];
 }
 
@@ -31,7 +32,8 @@ export async function getCustomers(organizationId: string): Promise<Customer[]> 
         first_name,
         last_name,
         handicap,
-        created_at
+        created_at,
+        ghin
       )
     `)
     .eq('organization_id', organizationId)

@@ -8,17 +8,35 @@ import { useRouter } from 'next/navigation'
 
 // Skeleton component for loading state
 const Skeleton = () => (
-  <div className="animate-pulse">
-    <div className="h-8 bg-gray-100 rounded-md mb-4"></div>
-    <div className="space-y-3">
-      {Array.from({ length: 5 }).map((_, idx) => (
-        <div key={idx} className="grid grid-cols-4 gap-4">
-          {Array.from({ length: 4 }).map((_, cellIdx) => (
-            <div key={cellIdx} className="h-5 bg-gray-100 rounded"></div>
-          ))}
-        </div>
-      ))}
-    </div>
+  <div className="p-0">
+    <table className="min-w-full divide-y divide-gray-100">
+      <thead>
+        <tr className="bg-white border-b border-gray-100">
+          <th className="px-6 py-3 max-w-24 text-left text-sm font-medium text-gray-600">Name</th>
+          <th className="px-6 py-3 text-left text-sm font-medium text-gray-600">Email</th>
+          <th className="px-6 py-3 max-w-24 text-left text-sm font-medium text-gray-600">GHIN</th>
+          <th className="px-6 py-3 max-w-8 text-left text-sm font-medium text-gray-600">Joined</th>
+        </tr>
+      </thead>
+      <tbody className="divide-y divide-gray-200">
+        {Array.from({ length: 5 }).map((_, idx) => (
+          <tr key={idx} className="border-b border-gray-100">
+            <td className="px-6 py-4 max-w-24">
+              <div className="h-4 w-24 bg-gray-100 rounded animate-pulse"></div>
+            </td>
+            <td className="px-6 py-4">
+              <div className="h-4 w-48 bg-gray-100 rounded animate-pulse"></div>
+            </td>
+            <td className="px-6 py-4 max-w-24">
+              <div className="h-4 w-16 bg-gray-100 rounded animate-pulse"></div>
+            </td>
+            <td className="px-6 py-4 max-w-8">
+              <div className="h-4 w-20 bg-gray-100 rounded animate-pulse"></div>
+            </td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
   </div>
 )
 

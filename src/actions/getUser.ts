@@ -9,7 +9,8 @@ export interface User {
   last_name?: string
   created_at: string
   organization_id?: string
-  ghin?: string;
+  ghin?: string
+  handicap?: string
 }
 
 export async function getUser(userId: string) {

@@ -24,7 +24,8 @@ export async function POST() {
       custom_redirect_url: `${process.env.NEXT_PUBLIC_BASE_URL}/security`,
       custom_redirect_failure_url: `${process.env.NEXT_PUBLIC_BASE_URL}/security?error=true`,
       custom_metadata: {
-        organization_id: orgId
+        organization_id: orgId,
+        user_identifier: userId
       }
     })
     

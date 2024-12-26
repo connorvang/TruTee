@@ -8,13 +8,13 @@ import { useOrganization } from '@clerk/nextjs'
 import { useRouter } from 'next/navigation'
 import { Device } from '@/types/seam'
 import { toast } from '@/hooks/use-toast'
+import { getDevices } from '@/actions/security/getDevices'
 
 
 export default function DoorLocksList() {
   const { organization } = useOrganization()
   const [locks, setLocks] = useState<Device[]>([])
   const [loading, setLoading] = useState(true)
-  const [actionLoading, setActionLoading] = useState<string | null>(null)
   const [isConnecting, setIsConnecting] = useState(false)
   const connectWindowRef = useRef<Window | null>(null)
   const router = useRouter()
@@ -23,17 +23,15 @@ export default function DoorLocksList() {
   const fetchLocks = async (silent = false) => {
     if (!silent) setLoading(true)
     try {
-      const response = await fetch('/api/seam')
-      console.log('API Response Status:', response.status)
-      
-      const data = await response.json()
-      console.log('API Response Data:', data)
-      
-      if (!response.ok) throw new Error(`Failed to fetch locks: ${JSON.stringify(data)}`)
-      setLocks(data)
+      const devices = await getDevices()
+      setLocks(devices)
     } catch (error) {
       console.error('Error fetching locks:', error)
-      setError(error instanceof Error ? error : new Error('Failed to fetch locks'))
+      toast({
+        title: "Error fetching devices",
+        description: error instanceof Error ? error.message : "Failed to fetch devices",
+        variant: "destructive",
+      })
     } finally {
       if (!silent) setLoading(false)
     }
